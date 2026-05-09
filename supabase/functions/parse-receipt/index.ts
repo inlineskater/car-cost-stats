@@ -21,7 +21,7 @@ interface ParsedData {
 }
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 const EXTRACTION_PROMPT = `You are a data extraction assistant for a car fuel cost tracking app.
 You will receive one or two images in any order — they may be a fuel station receipt and/or a car odometer photo.
