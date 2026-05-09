@@ -1,10 +1,12 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts'
 
+interface ImageInput {
+  base64: string
+  mimeType: string
+}
+
 interface ParseRequest {
-  receiptImageBase64?: string
-  receiptMimeType?: string
-  odometerImageBase64?: string
-  odometerMimeType?: string
+  images: ImageInput[]   // 1 or 2 images in any order — receipt and/or odometer
 }
 
 interface ParsedData {
@@ -19,11 +21,12 @@ interface ParsedData {
 }
 
 const GEMINI_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent'
+  'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent'
 
 const EXTRACTION_PROMPT = `You are a data extraction assistant for a car fuel cost tracking app.
-You will receive one or two images: a fuel station receipt and/or an odometer photo.
-Extract data and return ONLY valid JSON with this exact schema:
+You will receive one or two images in any order — they may be a fuel station receipt and/or a car odometer photo.
+Identify which image is which automatically, then extract all available data.
+Return ONLY valid JSON with this exact schema (no markdown, no extra text):
 
 {
   "date": "YYYY-MM-DD or null",
@@ -37,16 +40,14 @@ Extract data and return ONLY valid JSON with this exact schema:
 }
 
 Rules:
-- date: receipt date formatted as YYYY-MM-DD; null if not visible
-- fuel_type: "lpg" for LPG/autogas/CNG/GPL; "petrol" for petrol/gasoline/benzin/PB95/PB98; null if unclear
-- liters: volume dispensed as a number
+- date: receipt date as YYYY-MM-DD; null if not visible
+- fuel_type: "lpg" for LPG/autogas/CNG/GPL/gaz; "petrol" for petrol/gasoline/benzyna/PB95/PB98/Pb; null if unclear
+- liters: volume dispensed as a decimal number
 - price_per_liter: unit price; compute from total/liters if not shown explicitly
-- total_cost: total amount paid (numeric, no currency symbol)
-- mileage: odometer integer in km; if shown in miles multiply by 1.60934 and round
-- confidence: "high" if 5 core fields extracted; "medium" if 3-4; "low" if fewer than 3
-- parsing_notes: note ambiguities, computed fields, or image quality issues
-
-Return ONLY the JSON object. No markdown fences, no extra text.`
+- total_cost: total amount paid as a decimal number (no currency symbol)
+- mileage: odometer reading as an integer in km; convert from miles if needed (×1.60934, round)
+- confidence: "high" if 5+ fields extracted cleanly; "medium" if 3-4; "low" if fewer
+- parsing_notes: note image roles identified, ambiguities, computed fields, or quality issues`
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -55,42 +56,19 @@ const CORS = {
 }
 
 serve(async (req: Request) => {
-  if (req.method === 'OPTIONS') {
-    return new Response(null, { headers: CORS })
-  }
-  if (req.method !== 'POST') {
-    return new Response('Method Not Allowed', { status: 405, headers: CORS })
-  }
+  if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
+  if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS })
 
   try {
     const body: ParseRequest = await req.json()
     const geminiKey = Deno.env.get('GEMINI_API_KEY')
 
-    if (!geminiKey) {
-      return json({ error: 'GEMINI_API_KEY not configured' }, 500)
-    }
-    if (!body.receiptImageBase64 && !body.odometerImageBase64) {
-      return json({ error: 'At least one image required' }, 400)
-    }
+    if (!geminiKey) return json({ error: 'GEMINI_API_KEY not configured' }, 500)
+    if (!body.images?.length) return json({ error: 'At least one image required' }, 400)
 
-    const parts: object[] = []
-
-    if (body.receiptImageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: body.receiptMimeType ?? 'image/jpeg',
-          data: body.receiptImageBase64,
-        },
-      })
-    }
-    if (body.odometerImageBase64) {
-      parts.push({
-        inlineData: {
-          mimeType: body.odometerMimeType ?? 'image/jpeg',
-          data: body.odometerImageBase64,
-        },
-      })
-    }
+    const parts: object[] = body.images.map((img) => ({
+      inlineData: { mimeType: img.mimeType, data: img.base64 },
+    }))
     parts.push({ text: EXTRACTION_PROMPT })
 
     const geminiRes = await fetch(`${GEMINI_URL}?key=${geminiKey}`, {

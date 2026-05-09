@@ -1,55 +1,64 @@
-import { useState } from 'react'
+import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, PenLine } from 'lucide-react'
+import { Camera, ImageIcon, Sparkles, PenLine, X } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
-import ImageCapture from '@/components/ui/ImageCapture'
 import Spinner from '@/components/ui/Spinner'
 import Badge from '@/components/ui/Badge'
 import FuelForm, { type FuelFormData } from '@/components/fuel/FuelForm'
-import { useParseReceipt } from '@/hooks/useParseReceipt'
+import { useParseReceipt, type CapturedImage } from '@/hooks/useParseReceipt'
 import { useAddFuelEntry } from '@/hooks/useFuelEntries'
 import { useAppStore } from '@/stores/appStore'
+import { compressImage } from '@/lib/utils'
 import type { ParsedReceiptData } from '@/types'
 
 type Phase = 'capture' | 'parsing' | 'confirm'
-
-interface CapturedImage {
-  file: File
-  base64: string
-  mimeType: string
-  preview: string
-}
 
 export default function AddFuel() {
   const navigate = useNavigate()
   const addToast = useAppStore((s) => s.addToast)
 
   const [phase, setPhase] = useState<Phase>('capture')
-  const [receipt, setReceipt] = useState<CapturedImage | null>(null)
-  const [odometer, setOdometer] = useState<CapturedImage | null>(null)
+  const [images, setImages] = useState<CapturedImage[]>([])
   const [parsed, setParsed] = useState<ParsedReceiptData | null>(null)
+  const [processing, setProcessing] = useState(false)
+
+  const cameraRef = useRef<HTMLInputElement>(null)
+  const galleryRef = useRef<HTMLInputElement>(null)
 
   const parseReceipt = useParseReceipt()
   const addFuelEntry = useAddFuelEntry()
 
-  function handleReceiptSelected(file: File, base64: string, mimeType: string) {
-    setReceipt({ file, base64, mimeType, preview: URL.createObjectURL(file) })
+  async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
+    const files = Array.from(e.target.files ?? []).slice(0, 2 - images.length)
+    if (!files.length) return
+    setProcessing(true)
+    try {
+      const compressed = await Promise.all(files.map((f) => compressImage(f)))
+      const newImages: CapturedImage[] = compressed.map(({ file, base64, mimeType }) => ({
+        file,
+        base64,
+        mimeType,
+        preview: URL.createObjectURL(file),
+      }))
+      setImages((prev) => [...prev, ...newImages].slice(0, 2))
+    } finally {
+      setProcessing(false)
+      e.target.value = ''
+    }
   }
-  function handleOdometerSelected(file: File, base64: string, mimeType: string) {
-    setOdometer({ file, base64, mimeType, preview: URL.createObjectURL(file) })
+
+  function removeImage(idx: number) {
+    setImages((prev) => prev.filter((_, i) => i !== idx))
   }
 
   async function handleParseWithAI() {
-    if (!receipt && !odometer) return
+    if (!images.length) return
     setPhase('parsing')
     try {
-      const result = await parseReceipt.mutateAsync({
-        receiptFile: receipt ? { base64: receipt.base64, mimeType: receipt.mimeType } : null,
-        odometerFile: odometer ? { base64: odometer.base64, mimeType: odometer.mimeType } : null,
-      })
+      const result = await parseReceipt.mutateAsync(images)
       setParsed(result)
       if (result.confidence === 'low') {
-        addToast('AI couldn\'t read the images clearly — please fill in manually.', 'info')
+        addToast('AI confidence is low — please check the values.', 'info')
       }
     } catch {
       addToast('AI parsing failed — please fill in manually.', 'error')
@@ -70,12 +79,12 @@ export default function AddFuel() {
           notes: data.notes || null,
           ai_parsed: parsed !== null,
         },
-        receiptFile: receipt?.file,
-        odometerFile: odometer?.file,
+        receiptFile: images[0]?.file,
+        odometerFile: images[1]?.file,
       })
       addToast('Fuel entry saved!', 'success')
       navigate('/')
-    } catch (err) {
+    } catch {
       addToast('Failed to save entry.', 'error')
     }
   }
@@ -87,25 +96,91 @@ export default function AddFuel() {
 
         {phase === 'capture' && (
           <>
-            <div className="grid grid-cols-2 gap-4">
-              <ImageCapture
-                label="Receipt"
-                onImageSelected={handleReceiptSelected}
-                preview={receipt?.preview}
-                onClear={() => setReceipt(null)}
-              />
-              <ImageCapture
-                label="Odometer"
-                onImageSelected={handleOdometerSelected}
-                preview={odometer?.preview}
-                onClear={() => setOdometer(null)}
-              />
-            </div>
+            {/* Selected image thumbnails */}
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 gap-3">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative">
+                    <img
+                      src={img.preview}
+                      alt={`Photo ${idx + 1}`}
+                      className="w-full h-36 object-cover rounded-xl border border-slate-700"
+                    />
+                    <button
+                      onClick={() => removeImage(idx)}
+                      className="absolute top-1.5 right-1.5 bg-slate-900/80 rounded-full p-1 text-slate-300 hover:text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                    <p className="text-[11px] text-slate-400 mt-1 text-center">
+                      {idx === 0 ? 'Photo 1' : 'Photo 2'}
+                    </p>
+                  </div>
+                ))}
+              </div>
+            )}
 
+            {/* Add photo buttons — hidden once 2 photos selected */}
+            {images.length < 2 && (
+              <div className="space-y-3">
+                <p className="text-sm text-slate-400 text-center">
+                  {images.length === 0
+                    ? 'Add up to 2 photos (receipt + odometer)'
+                    : '1 photo added — add a second if you have one'}
+                </p>
+
+                {processing ? (
+                  <div className="flex items-center justify-center h-28 bg-slate-800 rounded-xl border border-dashed border-slate-600">
+                    <Spinner />
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      type="button"
+                      onClick={() => cameraRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-2 h-28 bg-slate-800 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors active:scale-95"
+                    >
+                      <Camera size={24} />
+                      <span className="text-sm font-medium">Camera</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => galleryRef.current?.click()}
+                      className="flex flex-col items-center justify-center gap-2 h-28 bg-slate-800 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors active:scale-95"
+                    >
+                      <ImageIcon size={24} />
+                      <span className="text-sm font-medium">Gallery</span>
+                      <span className="text-[11px] text-slate-500">select up to 2</span>
+                    </button>
+                  </div>
+                )}
+
+                {/* Camera: single shot */}
+                <input
+                  ref={cameraRef}
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  className="hidden"
+                  onChange={handleFiles}
+                />
+                {/* Gallery: multi-select, up to 2 photos at once */}
+                <input
+                  ref={galleryRef}
+                  type="file"
+                  accept="image/*"
+                  multiple
+                  className="hidden"
+                  onChange={handleFiles}
+                />
+              </div>
+            )}
+
+            {/* Action buttons */}
             <button
               onClick={handleParseWithAI}
-              disabled={!receipt && !odometer}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 text-white font-semibold py-3 rounded-xl transition-colors"
+              disabled={images.length === 0}
+              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white font-semibold py-3 rounded-xl transition-colors"
             >
               <Sparkles size={18} />
               Parse with AI
@@ -130,20 +205,20 @@ export default function AddFuel() {
         {phase === 'parsing' && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <Spinner className="w-10 h-10" />
-            <p className="text-slate-300 font-medium">Reading your receipt…</p>
-            <p className="text-slate-500 text-sm text-center">This usually takes 3–5 seconds</p>
+            <p className="text-slate-300 font-medium">Reading your photos…</p>
+            <p className="text-slate-500 text-sm text-center">Usually takes 3–5 seconds</p>
           </div>
         )}
 
         {phase === 'confirm' && (
           <>
             {parsed && (
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <Badge variant={parsed.confidence === 'high' ? 'success' : parsed.confidence === 'medium' ? 'warning' : 'danger'}>
                   AI {parsed.confidence} confidence
                 </Badge>
                 {parsed.parsing_notes && (
-                  <p className="text-xs text-slate-400 truncate flex-1">{parsed.parsing_notes}</p>
+                  <p className="text-xs text-slate-400 flex-1">{parsed.parsing_notes}</p>
                 )}
               </div>
             )}
