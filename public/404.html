@@ -1,0 +1,15 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <title>Car Cost Tracker</title>
+    <script>
+      // SPA fallback for GitHub Pages deep links.
+      // Saves the full URL in sessionStorage, then redirects to the root.
+      // index.html reads it back and calls history.replaceState to restore the path.
+      sessionStorage.setItem('redirect', location.href);
+      location.replace(location.origin + '/car-cost-stats/');
+    </script>
+  </head>
+  <body></body>
+</html>

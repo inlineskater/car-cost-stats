@@ -1,0 +1,19 @@
+{
+  "name": "Car Cost Tracker",
+  "short_name": "CarCosts",
+  "description": "Track fuel and car maintenance costs",
+  "theme_color": "#0f172a",
+  "background_color": "#0f172a",
+  "display": "standalone",
+  "orientation": "portrait",
+  "start_url": "/car-cost-stats/",
+  "scope": "/car-cost-stats/",
+  "icons": [
+    {
+      "src": "/car-cost-stats/pwa-icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}
