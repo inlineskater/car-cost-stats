@@ -65,8 +65,8 @@ export function useAddFuelEntry() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) throw new Error('Not authenticated')
 
-      let receipt_image_url: string | null = null
-      let odometer_image_url: string | null = null
+      let receipt_image_url: string | null = entry.receipt_image_url ?? null
+      let odometer_image_url: string | null = entry.odometer_image_url ?? null
 
       if (receiptFile) {
         const path = `${user.id}/${crypto.randomUUID()}.jpg`

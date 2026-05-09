@@ -4,7 +4,7 @@ import { ImageIcon, Sparkles, PenLine, X } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import Spinner from '@/components/ui/Spinner'
 import Badge from '@/components/ui/Badge'
-import FuelForm, { type FuelFormData } from '@/components/fuel/FuelForm'
+import FuelForm, { type FuelFormData, type FuelFormPrefill } from '@/components/fuel/FuelForm'
 import { useParseReceipt, type CapturedImage } from '@/hooks/useParseReceipt'
 import { useAddFuelEntry } from '@/hooks/useFuelEntries'
 import { useAppStore } from '@/stores/appStore'
@@ -13,6 +13,10 @@ import type { ParsedReceiptData } from '@/types'
 
 type Phase = 'capture' | 'parsing' | 'confirm'
 
+function roundTo(value: number, decimals: number): number {
+  return Number(value.toFixed(decimals))
+}
+
 export default function AddFuel() {
   const navigate = useNavigate()
   const addToast = useAppStore((s) => s.addToast)
@@ -20,12 +24,31 @@ export default function AddFuel() {
   const [phase, setPhase] = useState<Phase>('capture')
   const [images, setImages] = useState<CapturedImage[]>([])
   const [parsed, setParsed] = useState<ParsedReceiptData | null>(null)
+  const [entryIndex, setEntryIndex] = useState(0)
+  const [sharedImageUrls, setSharedImageUrls] = useState<{
+    receipt: string | null
+    odometer: string | null
+  }>({ receipt: null, odometer: null })
   const [processing, setProcessing] = useState(false)
 
   const galleryRef = useRef<HTMLInputElement>(null)
 
   const parseReceipt = useParseReceipt()
   const addFuelEntry = useAddFuelEntry()
+
+  const totalEntries = parsed?.entries.length ?? 1
+
+  function buildPrefill(p: ParsedReceiptData, idx: number): FuelFormPrefill {
+    const entry = p.entries[idx] ?? {}
+    return {
+      date: p.date,
+      mileage: p.mileage,
+      fuel_type: entry.fuel_type ?? null,
+      liters: entry.liters ?? null,
+      price_per_liter: entry.price_per_liter ?? null,
+      total_cost: entry.total_cost ?? null,
+    }
+  }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files ?? []).slice(0, 2 - images.length)
@@ -56,8 +79,13 @@ export default function AddFuel() {
     try {
       const result = await parseReceipt.mutateAsync(images)
       setParsed(result)
+      setEntryIndex(0)
+      setSharedImageUrls({ receipt: null, odometer: null })
       if (result.confidence === 'low') {
         addToast('AI confidence is low — please check the values.', 'info')
+      }
+      if (result.entries.length > 1) {
+        addToast(`${result.entries.length} fuel types detected on receipt.`, 'info')
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -67,23 +95,39 @@ export default function AddFuel() {
   }
 
   async function handleSubmit(data: FuelFormData) {
+    const isLast = entryIndex >= totalEntries - 1
     try {
-      await addFuelEntry.mutateAsync({
+      const saved = await addFuelEntry.mutateAsync({
         entry: {
           date: data.date,
           fuel_type: data.fuel_type,
-          liters: data.liters,
-          price_per_liter: data.price_per_liter,
-          total_cost: data.total_cost,
+          liters: roundTo(data.liters, 3),
+          price_per_liter: roundTo(data.price_per_liter, 4),
+          total_cost: roundTo(data.total_cost, 2),
           mileage: data.mileage,
           notes: data.notes || null,
           ai_parsed: parsed !== null,
+          receipt_image_url: sharedImageUrls.receipt,
+          odometer_image_url: sharedImageUrls.odometer,
         },
-        receiptFile: images[0]?.file,
-        odometerFile: images[1]?.file,
+        // Only attach images to the first entry to avoid duplicate uploads
+        receiptFile: entryIndex === 0 ? images[0]?.file : undefined,
+        odometerFile: entryIndex === 0 ? images[1]?.file : undefined,
       })
-      addToast('Fuel entry saved!', 'success')
-      navigate('/')
+
+      if (isLast) {
+        addToast('Fuel entry saved!', 'success')
+        navigate('/')
+      } else {
+        if (entryIndex === 0) {
+          setSharedImageUrls({
+            receipt: saved.receipt_image_url,
+            odometer: saved.odometer_image_url,
+          })
+        }
+        addToast('Entry saved — confirm the next fuel type.', 'success')
+        setEntryIndex((i) => i + 1)
+      }
     } catch {
       addToast('Failed to save entry.', 'error')
     }
@@ -96,7 +140,6 @@ export default function AddFuel() {
 
         {phase === 'capture' && (
           <>
-            {/* Selected image thumbnails */}
             {images.length > 0 && (
               <div className="grid grid-cols-2 gap-3">
                 {images.map((img, idx) => (
@@ -120,7 +163,6 @@ export default function AddFuel() {
               </div>
             )}
 
-            {/* Add photo buttons — hidden once 2 photos selected */}
             {images.length < 2 && (
               <div className="space-y-3">
                 <p className="text-sm text-slate-400 text-center">
@@ -156,7 +198,6 @@ export default function AddFuel() {
               </div>
             )}
 
-            {/* Action buttons */}
             <button
               onClick={handleParseWithAI}
               disabled={images.length === 0}
@@ -197,13 +238,19 @@ export default function AddFuel() {
                 <Badge variant={parsed.confidence === 'high' ? 'success' : parsed.confidence === 'medium' ? 'warning' : 'danger'}>
                   AI {parsed.confidence} confidence
                 </Badge>
+                {totalEntries > 1 && (
+                  <Badge variant="info">
+                    Entry {entryIndex + 1} of {totalEntries}
+                  </Badge>
+                )}
                 {parsed.parsing_notes && (
                   <p className="text-xs text-slate-400 flex-1">{parsed.parsing_notes}</p>
                 )}
               </div>
             )}
             <FuelForm
-              prefilled={parsed}
+              key={entryIndex}
+              prefilled={parsed ? buildPrefill(parsed, entryIndex) : null}
               onSubmit={handleSubmit}
               submitting={addFuelEntry.isPending}
             />

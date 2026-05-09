@@ -14,13 +14,17 @@ interface ParseRequest {
   odometerMimeType?: string
 }
 
-interface ParsedData {
-  date: string | null
+interface FuelEntry {
   fuel_type: 'lpg' | 'petrol' | null
   liters: number | null
   price_per_liter: number | null
   total_cost: number | null
+}
+
+interface ParsedData {
+  date: string | null
   mileage: number | null
+  entries: FuelEntry[]
   confidence: 'high' | 'medium' | 'low'
   parsing_notes: string
 }
@@ -29,35 +33,67 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 const EXTRACTION_PROMPT = `You are a data extraction assistant for a car fuel cost tracking app.
-You will receive one or two images in any order — they may be a fuel station receipt and/or a car odometer photo.
+You will receive one or two images — they may be a fuel station receipt and/or a car odometer photo.
 Identify which image is which automatically, then extract all available data.
-Return ONLY valid JSON with this exact schema (no markdown, no extra text):
+
+IMPORTANT: A single receipt may contain BOTH LPG and petrol fuel types as separate line items.
+If you see multiple fuel types on one receipt, return ALL of them as separate entries in the "entries" array.
+
+Return JSON with this exact schema:
 
 {
   "date": "YYYY-MM-DD or null",
-  "fuel_type": "lpg" or "petrol" or null,
-  "liters": number or null,
-  "price_per_liter": number or null,
-  "total_cost": number or null,
   "mileage": integer or null,
+  "entries": [
+    {
+      "fuel_type": "lpg" or "petrol" or null,
+      "liters": number or null,
+      "price_per_liter": number or null,
+      "total_cost": number or null
+    }
+  ],
   "confidence": "high" or "medium" or "low",
   "parsing_notes": "brief notes on what was found or unclear"
 }
 
 Rules:
 - date: receipt date as YYYY-MM-DD; null if not visible
-- fuel_type: "lpg" for LPG/autogas/CNG/GPL/gaz; "petrol" for petrol/gasoline/benzyna/PB95/PB98/Pb; null if unclear
+- mileage: odometer reading as an integer in km; convert from miles if needed (×1.60934, round); null if no odometer photo
+- entries: array with 1 entry normally, 2 entries if receipt shows both LPG and petrol
+- fuel_type: "lpg" for LPG/autogas/CNG/GPL/gaz/LPG; "petrol" for petrol/gasoline/benzyna/PB95/PB98/Pb/E10; null if unclear
 - liters: volume dispensed as a decimal number
 - price_per_liter: unit price; compute from total/liters if not shown explicitly
-- total_cost: total amount paid as a decimal number (no currency symbol)
-- mileage: odometer reading as an integer in km; convert from miles if needed (×1.60934, round)
+- total_cost: amount paid for THIS fuel type only (no currency symbol)
 - confidence: "high" if 5+ fields extracted cleanly; "medium" if 3-4; "low" if fewer
-- parsing_notes: note image roles identified, ambiguities, computed fields, or quality issues`
+- parsing_notes: note image roles, multiple fuels detected, ambiguities, computed fields, or quality issues`
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+}
+
+type ParsedPayload = Partial<ParsedData> & Partial<FuelEntry>
+
+function roundTo(v: unknown, decimals: number): number | null {
+  if (v == null) return null
+  const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
+  if (!Number.isFinite(n)) return null
+  return Number(n.toFixed(decimals))
+}
+
+function roundMileage(v: unknown): number | null {
+  if (v == null) return null
+  const n = typeof v === 'number' ? v : Number(String(v).replace(',', '.'))
+  return Number.isFinite(n) ? Math.round(n) : null
+}
+
+function normalizeFuelType(v: unknown): FuelEntry['fuel_type'] {
+  return v === 'lpg' || v === 'petrol' ? v : null
+}
+
+function normalizeConfidence(v: unknown): ParsedData['confidence'] {
+  return v === 'high' || v === 'medium' || v === 'low' ? v : 'low'
 }
 
 serve(async (req: Request) => {
@@ -94,6 +130,30 @@ serve(async (req: Request) => {
           topP: 0.8,
           maxOutputTokens: 1024,
           responseMimeType: 'application/json',
+          thinkingConfig: { thinkingBudget: 0 },
+          responseSchema: {
+            type: 'OBJECT',
+            properties: {
+              date: { type: 'STRING', nullable: true },
+              mileage: { type: 'INTEGER', nullable: true },
+              entries: {
+                type: 'ARRAY',
+                items: {
+                  type: 'OBJECT',
+                  properties: {
+                    fuel_type: { type: 'STRING', nullable: true },
+                    liters: { type: 'NUMBER', nullable: true },
+                    price_per_liter: { type: 'NUMBER', nullable: true },
+                    total_cost: { type: 'NUMBER', nullable: true },
+                  },
+                  required: ['fuel_type', 'liters', 'price_per_liter', 'total_cost'],
+                },
+              },
+              confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
+              parsing_notes: { type: 'STRING' },
+            },
+            required: ['entries', 'confidence', 'parsing_notes'],
+          },
         },
       }),
     })
@@ -106,8 +166,6 @@ serve(async (req: Request) => {
 
     const geminiData = await geminiRes.json()
 
-    // With responseMimeType: 'application/json', Gemini returns raw JSON — no markdown fences.
-    // Still handle thinking tokens (parts with thought: true) just in case.
     const parts2: Array<{ thought?: boolean; text?: string }> =
       geminiData?.candidates?.[0]?.content?.parts ?? []
     const rawText: string =
@@ -115,15 +173,45 @@ serve(async (req: Request) => {
       parts2[parts2.length - 1]?.text ??
       ''
 
-    let parsed: ParsedData
+    let parsed: ParsedPayload
     try {
       parsed = JSON.parse(rawText.trim())
     } catch {
       console.error('JSON parse failed. Raw:', rawText)
-      return json({ error: 'Could not parse AI response', raw: rawText.slice(0, 300) }, 422)
+      const preview = rawText.slice(0, 200) || '(empty)'
+      return json({ error: `Parse failed — raw: ${preview}` }, 422)
     }
 
-    return json(parsed, 200)
+    if (!Array.isArray(parsed.entries)) {
+      const hasLegacyEntry =
+        parsed.fuel_type != null ||
+        parsed.liters != null ||
+        parsed.price_per_liter != null ||
+        parsed.total_cost != null
+      parsed.entries = hasLegacyEntry
+        ? [{
+            fuel_type: parsed.fuel_type ?? null,
+            liters: parsed.liters ?? null,
+            price_per_liter: parsed.price_per_liter ?? null,
+            total_cost: parsed.total_cost ?? null,
+          }]
+        : []
+    }
+
+    const result: ParsedData = {
+      date: parsed.date ?? null,
+      mileage: roundMileage(parsed.mileage),
+      confidence: normalizeConfidence(parsed.confidence),
+      parsing_notes: parsed.parsing_notes ?? '',
+      entries: parsed.entries.map((e) => ({
+        fuel_type: normalizeFuelType(e.fuel_type),
+        liters: roundTo(e.liters, 3),
+        price_per_liter: roundTo(e.price_per_liter, 4),
+        total_cost: roundTo(e.total_cost, 2),
+      })),
+    }
+
+    return json(result, 200)
   } catch (err) {
     console.error('Edge function error:', err)
     return json({ error: 'Internal server error' }, 500)

@@ -5,8 +5,13 @@ import { z } from 'zod'
 import Input from '@/components/ui/Input'
 import Button from '@/components/ui/Button'
 import FuelTypeToggle from './FuelTypeToggle'
-import type { FuelType, ParsedReceiptData } from '@/types'
+import type { FuelType, ParsedFuelEntry } from '@/types'
 import { todayISO } from '@/lib/utils'
+
+export interface FuelFormPrefill extends ParsedFuelEntry {
+  date: string | null
+  mileage: number | null
+}
 
 const schema = z.object({
   date: z.string().min(1, 'Required'),
@@ -22,7 +27,7 @@ export type FuelFormData = z.infer<typeof schema>
 
 interface FuelFormProps {
   defaultValues?: Partial<FuelFormData>
-  prefilled?: ParsedReceiptData | null
+  prefilled?: FuelFormPrefill | null
   onSubmit: (data: FuelFormData) => void
   submitting?: boolean
 }
