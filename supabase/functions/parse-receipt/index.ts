@@ -6,7 +6,12 @@ interface ImageInput {
 }
 
 interface ParseRequest {
-  images: ImageInput[]   // 1 or 2 images in any order — receipt and/or odometer
+  images?: ImageInput[]
+  // legacy fields kept for backward compatibility with old cached frontend code
+  receiptImageBase64?: string
+  receiptMimeType?: string
+  odometerImageBase64?: string
+  odometerMimeType?: string
 }
 
 interface ParsedData {
@@ -64,9 +69,17 @@ serve(async (req: Request) => {
     const geminiKey = Deno.env.get('GEMINI_API_KEY')
 
     if (!geminiKey) return json({ error: 'GEMINI_API_KEY not configured' }, 500)
-    if (!body.images?.length) return json({ error: 'At least one image required' }, 400)
 
-    const parts: object[] = body.images.map((img) => ({
+    // Normalise: accept both new { images: [] } and old { receiptImageBase64, odometerImageBase64 }
+    const images: ImageInput[] = body.images ?? []
+    if (body.receiptImageBase64)
+      images.push({ base64: body.receiptImageBase64, mimeType: body.receiptMimeType ?? 'image/jpeg' })
+    if (body.odometerImageBase64)
+      images.push({ base64: body.odometerImageBase64, mimeType: body.odometerMimeType ?? 'image/jpeg' })
+
+    if (!images.length) return json({ error: 'At least one image required' }, 400)
+
+    const parts: object[] = images.map((img) => ({
       inlineData: { mimeType: img.mimeType, data: img.base64 },
     }))
     parts.push({ text: EXTRACTION_PROMPT })

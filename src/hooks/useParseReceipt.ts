@@ -17,7 +17,15 @@ export function useParseReceipt() {
           images: images.map((img) => ({ base64: img.base64, mimeType: img.mimeType })),
         },
       })
-      if (error) throw new Error(error.message)
+      if (error) {
+        // Try to get the actual error body from the edge function response
+        let detail = error.message
+        try {
+          const body = await (error as unknown as { context: Response }).context.json()
+          detail = body?.error ?? body?.detail ?? error.message
+        } catch { /* ignore parse error */ }
+        throw new Error(detail)
+      }
       if (!data) throw new Error('No data returned from AI')
       return data
     },

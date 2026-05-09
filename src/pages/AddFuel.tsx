@@ -60,8 +60,9 @@ export default function AddFuel() {
       if (result.confidence === 'low') {
         addToast('AI confidence is low — please check the values.', 'info')
       }
-    } catch {
-      addToast('AI parsing failed — please fill in manually.', 'error')
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err)
+      addToast(`AI failed: ${msg}`, 'error')
     }
     setPhase('confirm')
   }
