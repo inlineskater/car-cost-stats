@@ -89,7 +89,12 @@ serve(async (req: Request) => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         contents: [{ parts }],
-        generationConfig: { temperature: 0.1, topP: 0.8, maxOutputTokens: 512 },
+        generationConfig: {
+          temperature: 0.1,
+          topP: 0.8,
+          maxOutputTokens: 1024,
+          responseMimeType: 'application/json',
+        },
       }),
     })
 
@@ -101,28 +106,21 @@ serve(async (req: Request) => {
 
     const geminiData = await geminiRes.json()
 
-    // Gemini 2.5-flash uses thinking tokens — they appear as parts with { thought: true }.
-    // Find the first non-thinking part that contains actual text output.
-    const parts2 = geminiData?.candidates?.[0]?.content?.parts ?? []
-    const rawText: string = (
-      parts2.find((p: { thought?: boolean; text?: string }) => !p.thought && p.text)?.text ??
+    // With responseMimeType: 'application/json', Gemini returns raw JSON — no markdown fences.
+    // Still handle thinking tokens (parts with thought: true) just in case.
+    const parts2: Array<{ thought?: boolean; text?: string }> =
+      geminiData?.candidates?.[0]?.content?.parts ?? []
+    const rawText: string =
+      parts2.find((p) => !p.thought && p.text)?.text ??
       parts2[parts2.length - 1]?.text ??
       ''
-    )
-
-    // Strip markdown fences, then try to extract a JSON object anywhere in the text
-    let jsonText = rawText.replace(/^```json\s*/im, '').replace(/```\s*$/im, '').trim()
-    if (!jsonText.startsWith('{')) {
-      const match = rawText.match(/\{[\s\S]*\}/)
-      if (match) jsonText = match[0]
-    }
 
     let parsed: ParsedData
     try {
-      parsed = JSON.parse(jsonText)
+      parsed = JSON.parse(rawText.trim())
     } catch {
       console.error('JSON parse failed. Raw:', rawText)
-      return json({ error: 'Could not parse AI response', raw: rawText.slice(0, 500) }, 422)
+      return json({ error: 'Could not parse AI response', raw: rawText.slice(0, 300) }, 422)
     }
 
     return json(parsed, 200)
