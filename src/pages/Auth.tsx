@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Car } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
+import { isAllowedAuthEmail } from '@/lib/authAllowlist'
 
 export default function Auth() {
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -15,6 +16,12 @@ export default function Auth() {
     setLoading(true)
     setError(null)
     setMessage(null)
+
+    if (!isAllowedAuthEmail(email)) {
+      setError('This email is not allowed to access this app.')
+      setLoading(false)
+      return
+    }
 
     if (mode === 'signup') {
       const { error } = await supabase.auth.signUp({ email, password })

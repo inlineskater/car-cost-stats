@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '@/lib/supabase'
+import { isAllowedAuthEmail } from '@/lib/authAllowlist'
 import AppShell from '@/components/layout/AppShell'
 import Auth from '@/pages/Auth'
 import Dashboard from '@/pages/Dashboard'
@@ -12,6 +13,9 @@ import Statistics from '@/pages/Statistics'
 
 function ProtectedRoute({ session, children }: { session: Session | null; children: React.ReactNode }) {
   if (!session) return <Navigate to="/auth" replace />
+  if (!isAllowedAuthEmail(session.user.email)) {
+    return <Navigate to="/auth" replace />
+  }
   return <>{children}</>
 }
 
@@ -19,8 +23,17 @@ export default function App() {
   const [session, setSession] = useState<Session | null | undefined>(undefined)
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data }) => setSession(data.session))
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => setSession(s))
+    function applySession(s: Session | null) {
+      if (s && !isAllowedAuthEmail(s.user.email)) {
+        setSession(null)
+        void supabase.auth.signOut()
+        return
+      }
+      setSession(s)
+    }
+
+    supabase.auth.getSession().then(({ data }) => applySession(data.session))
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, s) => applySession(s))
     return () => subscription.unsubscribe()
   }, [])
 
@@ -34,7 +47,7 @@ export default function App() {
 
   return (
     <Routes>
-      <Route path="/auth" element={session ? <Navigate to="/" replace /> : <Auth />} />
+      <Route path="/auth" element={session && isAllowedAuthEmail(session.user.email) ? <Navigate to="/" replace /> : <Auth />} />
       <Route
         path="/"
         element={

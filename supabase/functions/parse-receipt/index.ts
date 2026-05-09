@@ -73,7 +73,17 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
+const MAX_IMAGES = 2
+const MAX_BASE64_CHARS = 3_000_000
+const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
+const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/
+
 type ParsedPayload = Partial<ParsedData> & Partial<FuelEntry>
+
+interface AuthenticatedUser {
+  id: string
+  email: string
+}
 
 function roundTo(v: unknown, decimals: number): number | null {
   if (v == null) return null
@@ -96,24 +106,99 @@ function normalizeConfidence(v: unknown): ParsedData['confidence'] {
   return v === 'high' || v === 'medium' || v === 'low' ? v : 'low'
 }
 
+async function requireAuthenticatedUser(req: Request): Promise<AuthenticatedUser | Response> {
+  const authHeader = req.headers.get('authorization')
+  if (!authHeader?.toLowerCase().startsWith('bearer ')) {
+    return json({ error: 'Unauthorized' }, 401)
+  }
+
+  const supabaseUrl = Deno.env.get('SUPABASE_URL')
+  const supabaseAnonKey = Deno.env.get('SUPABASE_ANON_KEY')
+  if (!supabaseUrl || !supabaseAnonKey) {
+    console.error('Supabase auth env vars missing')
+    return json({ error: 'Auth not configured' }, 500)
+  }
+
+  const userRes = await fetch(`${supabaseUrl}/auth/v1/user`, {
+    headers: {
+      authorization: authHeader,
+      apikey: supabaseAnonKey,
+    },
+  })
+
+  if (!userRes.ok) return json({ error: 'Unauthorized' }, 401)
+
+  const user = await userRes.json()
+  if (typeof user?.id !== 'string' || typeof user?.email !== 'string') {
+    return json({ error: 'Unauthorized' }, 401)
+  }
+
+  const allowRes = await fetch(`${supabaseUrl}/rest/v1/rpc/is_allowed_user`, {
+    method: 'POST',
+    headers: {
+      authorization: authHeader,
+      apikey: supabaseAnonKey,
+      'Content-Type': 'application/json',
+    },
+    body: '{}',
+  })
+
+  if (!allowRes.ok) {
+    console.error('Allowlist check failed:', await allowRes.text())
+    return json({ error: 'Authorization check failed' }, 500)
+  }
+
+  const allowed = await allowRes.json()
+  if (allowed !== true) {
+    return json({ error: 'Forbidden' }, 403)
+  }
+
+  return { id: user.id, email: user.email }
+}
+
+function validateImages(images: ImageInput[]): Response | null {
+  if (!images.length) return json({ error: 'At least one image required' }, 400)
+  if (images.length > MAX_IMAGES) return json({ error: `Maximum ${MAX_IMAGES} images allowed` }, 400)
+
+  for (const img of images) {
+    if (!ALLOWED_MIME_TYPES.has(img.mimeType)) {
+      return json({ error: 'Unsupported image type' }, 400)
+    }
+    if (
+      typeof img.base64 !== 'string' ||
+      img.base64.length === 0 ||
+      img.base64.length > MAX_BASE64_CHARS ||
+      !BASE64_RE.test(img.base64)
+    ) {
+      return json({ error: 'Invalid image payload' }, 400)
+    }
+  }
+
+  return null
+}
+
 serve(async (req: Request) => {
   if (req.method === 'OPTIONS') return new Response(null, { headers: CORS })
   if (req.method !== 'POST') return new Response('Method Not Allowed', { status: 405, headers: CORS })
 
   try {
+    const user = await requireAuthenticatedUser(req)
+    if (user instanceof Response) return user
+
     const body: ParseRequest = await req.json()
     const geminiKey = Deno.env.get('GEMINI_API_KEY')
 
     if (!geminiKey) return json({ error: 'GEMINI_API_KEY not configured' }, 500)
 
     // Normalise: accept both new { images: [] } and old { receiptImageBase64, odometerImageBase64 }
-    const images: ImageInput[] = body.images ?? []
+    const images: ImageInput[] = [...(body.images ?? [])]
     if (body.receiptImageBase64)
       images.push({ base64: body.receiptImageBase64, mimeType: body.receiptMimeType ?? 'image/jpeg' })
     if (body.odometerImageBase64)
       images.push({ base64: body.odometerImageBase64, mimeType: body.odometerMimeType ?? 'image/jpeg' })
 
-    if (!images.length) return json({ error: 'At least one image required' }, 400)
+    const validationError = validateImages(images)
+    if (validationError) return validationError
 
     const parts: object[] = images.map((img) => ({
       inlineData: { mimeType: img.mimeType, data: img.base64 },
@@ -160,8 +245,8 @@ serve(async (req: Request) => {
 
     if (!geminiRes.ok) {
       const err = await geminiRes.text()
-      console.error('Gemini error:', err)
-      return json({ error: 'Gemini API error', detail: err }, 502)
+      console.error('Gemini error:', err.slice(0, 500))
+      return json({ error: 'Gemini API error' }, 502)
     }
 
     const geminiData = await geminiRes.json()
