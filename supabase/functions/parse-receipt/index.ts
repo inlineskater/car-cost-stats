@@ -100,15 +100,29 @@ serve(async (req: Request) => {
     }
 
     const geminiData = await geminiRes.json()
-    const rawText: string = geminiData?.candidates?.[0]?.content?.parts?.[0]?.text ?? ''
-    const jsonText = rawText.replace(/^```json\s*/i, '').replace(/```\s*$/i, '').trim()
+
+    // Gemini 2.5-flash uses thinking tokens — they appear as parts with { thought: true }.
+    // Find the first non-thinking part that contains actual text output.
+    const parts2 = geminiData?.candidates?.[0]?.content?.parts ?? []
+    const rawText: string = (
+      parts2.find((p: { thought?: boolean; text?: string }) => !p.thought && p.text)?.text ??
+      parts2[parts2.length - 1]?.text ??
+      ''
+    )
+
+    // Strip markdown fences, then try to extract a JSON object anywhere in the text
+    let jsonText = rawText.replace(/^```json\s*/im, '').replace(/```\s*$/im, '').trim()
+    if (!jsonText.startsWith('{')) {
+      const match = rawText.match(/\{[\s\S]*\}/)
+      if (match) jsonText = match[0]
+    }
 
     let parsed: ParsedData
     try {
       parsed = JSON.parse(jsonText)
     } catch {
-      console.error('JSON parse failed:', rawText)
-      return json({ error: 'Could not parse AI response', raw: rawText }, 422)
+      console.error('JSON parse failed. Raw:', rawText)
+      return json({ error: 'Could not parse AI response', raw: rawText.slice(0, 500) }, 422)
     }
 
     return json(parsed, 200)

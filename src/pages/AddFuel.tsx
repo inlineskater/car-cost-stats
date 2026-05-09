@@ -1,6 +1,6 @@
 import { useState, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, ImageIcon, Sparkles, PenLine, X } from 'lucide-react'
+import { ImageIcon, Sparkles, PenLine, X } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import Spinner from '@/components/ui/Spinner'
 import Badge from '@/components/ui/Badge'
@@ -22,7 +22,6 @@ export default function AddFuel() {
   const [parsed, setParsed] = useState<ParsedReceiptData | null>(null)
   const [processing, setProcessing] = useState(false)
 
-  const cameraRef = useRef<HTMLInputElement>(null)
   const galleryRef = useRef<HTMLInputElement>(null)
 
   const parseReceipt = useParseReceipt()
@@ -135,37 +134,17 @@ export default function AddFuel() {
                     <Spinner />
                   </div>
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <button
-                      type="button"
-                      onClick={() => cameraRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2 h-28 bg-slate-800 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors active:scale-95"
-                    >
-                      <Camera size={24} />
-                      <span className="text-sm font-medium">Camera</span>
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => galleryRef.current?.click()}
-                      className="flex flex-col items-center justify-center gap-2 h-28 bg-slate-800 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors active:scale-95"
-                    >
-                      <ImageIcon size={24} />
-                      <span className="text-sm font-medium">Gallery</span>
-                      <span className="text-[11px] text-slate-500">select up to 2</span>
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => galleryRef.current?.click()}
+                    className="w-full flex flex-col items-center justify-center gap-2 h-28 bg-slate-800 border border-dashed border-slate-600 rounded-xl text-slate-400 hover:border-blue-500 hover:text-blue-400 transition-colors active:scale-95"
+                  >
+                    <ImageIcon size={28} />
+                    <span className="text-sm font-medium">Select photos</span>
+                    <span className="text-[11px] text-slate-500">choose up to 2 at once</span>
+                  </button>
                 )}
 
-                {/* Camera: single shot */}
-                <input
-                  ref={cameraRef}
-                  type="file"
-                  accept="image/*"
-                  capture="environment"
-                  className="hidden"
-                  onChange={handleFiles}
-                />
-                {/* Gallery: multi-select, up to 2 photos at once */}
                 <input
                   ref={galleryRef}
                   type="file"
