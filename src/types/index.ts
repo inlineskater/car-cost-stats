@@ -28,6 +28,12 @@ export interface MonthlyBreakdown {
   lpgCostPerKm: number | null
   petrolCostPerKm: number | null
   otherCostPerKm: number | null
+  // per-category cost/km for stacked chart
+  insuranceCostPerKm: number | null
+  inspectionCostPerKm: number | null
+  serviceCostPerKm: number | null
+  repairCostPerKm: number | null
+  otherCatCostPerKm: number | null
 }
 
 export interface ConsumptionPoint {
@@ -42,6 +48,7 @@ export interface StatsData {
   totalCost: number
   totalKm: number
   costPerKm: number | null
+  costPerKmByCategory: Record<string, number>
   lpgCostPerKm: number | null
   petrolCostPerKm: number | null
   otherCostPerKm: number | null

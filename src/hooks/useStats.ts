@@ -77,6 +77,20 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     const petrolCostPerKm = totalKm > 0 ? petrolTotal / totalKm : null
     const otherCostPerKm = totalKm > 0 ? totalOtherCost / totalKm : null
 
+    // per-category cost/km breakdown
+    const costByCategory: Record<string, number> = {}
+    for (const c of costs) {
+      costByCategory[c.category] = (costByCategory[c.category] ?? 0) + Number(c.cost)
+    }
+    const costPerKmByCategory: Record<string, number> = {}
+    if (totalKm > 0) {
+      costPerKmByCategory['lpg'] = +(lpgTotal / totalKm).toFixed(4)
+      costPerKmByCategory['petrol'] = +(petrolTotal / totalKm).toFixed(4)
+      for (const [cat, total] of Object.entries(costByCategory)) {
+        costPerKmByCategory[cat] = +(total / totalKm).toFixed(4)
+      }
+    }
+
     const totalLitersLpg = lpgEntries.reduce((s, e) => s + Number(e.liters), 0)
     const totalLitersPetrol = petrolEntries.reduce((s, e) => s + Number(e.liters), 0)
 
@@ -139,6 +153,13 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         .filter((e) => e.date.startsWith(monthKey))
         .reduce((s, e) => s + Number(e.cost), 0)
 
+      const monthCosts = costs.filter((e) => e.date.startsWith(monthKey))
+      const insuranceCost = monthCosts.filter((e) => e.category === 'insurance').reduce((s, e) => s + Number(e.cost), 0)
+      const inspectionCost = monthCosts.filter((e) => e.category === 'inspection').reduce((s, e) => s + Number(e.cost), 0)
+      const serviceCost = monthCosts.filter((e) => e.category === 'service').reduce((s, e) => s + Number(e.cost), 0)
+      const repairCost = monthCosts.filter((e) => e.category === 'repair').reduce((s, e) => s + Number(e.cost), 0)
+      const otherCatCost = monthCosts.filter((e) => e.category === 'other' || e.category === 'tax').reduce((s, e) => s + Number(e.cost), 0)
+
       const thisMax = maxMileageByMonth.get(monthKey) ?? null
       const prevMax = maxMileageByMonth.get(prevMonthKey) ?? null
       const kmDriven = thisMax !== null && prevMax !== null && thisMax > prevMax ? thisMax - prevMax : null
@@ -149,6 +170,11 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         month: monthKey, label: monthLabel,
         lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost,
         kmDriven, lpgCostPerKm, petrolCostPerKm: null, otherCostPerKm,
+        insuranceCostPerKm: kmDriven ? +(insuranceCost / kmDriven).toFixed(3) : null,
+        inspectionCostPerKm: kmDriven ? +(inspectionCost / kmDriven).toFixed(3) : null,
+        serviceCostPerKm: kmDriven ? +(serviceCost / kmDriven).toFixed(3) : null,
+        repairCostPerKm: kmDriven ? +(repairCost / kmDriven).toFixed(3) : null,
+        otherCatCostPerKm: kmDriven ? +(otherCatCost / kmDriven).toFixed(3) : null,
       })
     }
 
@@ -187,6 +213,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       totalCost: totalFuelCost + totalOtherCost,
       totalKm,
       costPerKm,
+      costPerKmByCategory,
       lpgCostPerKm: lpgCostPerKm !== null ? +lpgCostPerKm.toFixed(3) : null,
       petrolCostPerKm: petrolCostPerKm !== null ? +petrolCostPerKm.toFixed(3) : null,
       otherCostPerKm: otherCostPerKm !== null ? +otherCostPerKm.toFixed(3) : null,

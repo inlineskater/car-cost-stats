@@ -14,7 +14,11 @@ export default function CostPerKmChart({ data }: CostPerKmChartProps) {
       label: m.label,
       lpg: m.lpgCostPerKm ?? 0,
       petrol: m.petrolCostPerKm ?? 0,
-      other: m.otherCostPerKm ?? 0,
+      insurance: m.insuranceCostPerKm ?? 0,
+      inspection: m.inspectionCostPerKm ?? 0,
+      service: m.serviceCostPerKm ?? 0,
+      repair: m.repairCostPerKm ?? 0,
+      other: m.otherCatCostPerKm ?? 0,
     }))
 
   if (chartData.length < 2) {
@@ -33,10 +37,14 @@ export default function CostPerKmChart({ data }: CostPerKmChartProps) {
           itemStyle={{ color: '#6B7280' }}
           formatter={(v: number) => `${v.toFixed(3)} zł/km`}
         />
-        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 12 }} />
-        <Bar dataKey="lpg" name="LPG" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="petrol" name="Petrol" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="other" name="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 11 }} />
+        <Bar dataKey="lpg" name="LPG" stackId="a" fill="#22c55e" />
+        <Bar dataKey="petrol" name="Petrol" stackId="a" fill="#3b82f6" />
+        <Bar dataKey="service" name="Service" stackId="a" fill="#8b5cf6" />
+        <Bar dataKey="repair" name="Repair" stackId="a" fill="#ef4444" />
+        <Bar dataKey="insurance" name="Insurance" stackId="a" fill="#06b6d4" />
+        <Bar dataKey="inspection" name="Inspection" stackId="a" fill="#f59e0b" />
+        <Bar dataKey="other" name="Other" stackId="a" fill="#6b7280" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>
   )

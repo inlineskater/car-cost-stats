@@ -63,9 +63,16 @@ export default function Dashboard() {
                 sub="fuel only"
               />
               <StatCard
-                label="Petrol / km"
-                value={stats.petrolCostPerKm !== null ? `${stats.petrolCostPerKm.toFixed(2)} zł` : '—'}
-                sub="fuel only"
+                label="Total / km"
+                value={stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)} zł` : '—'}
+                sub={Object.keys(stats.costPerKmByCategory).length > 0
+                  ? Object.entries(stats.costPerKmByCategory)
+                      .filter(([, v]) => v > 0.001)
+                      .sort((a, b) => b[1] - a[1])
+                      .slice(0, 4)
+                      .map(([k, v]) => `${k} ${v.toFixed(2)}`)
+                      .join(' + ')
+                  : undefined}
               />
               {stats.avgConsumptionLpg !== null && (
                 <StatCard
