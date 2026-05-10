@@ -44,6 +44,13 @@ export interface StatsData {
   consumptionHistory: ConsumptionPoint[]
   lpgShare: number    // 0-100 percent
   petrolShare: number
+  totalLitersLpg: number
+  totalLitersPetrol: number
+  avgPricePerLiterLpg: number | null
+  avgPricePerLiterPetrol: number | null
+  fillUpCountLpg: number
+  fillUpCountPetrol: number
+  lpgSavings: number | null   // cost saved vs buying same volume at petrol prices
 }
 
 export interface HistoryFilters {
