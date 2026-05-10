@@ -30,25 +30,21 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     const lpgEntries = fuel.filter((e) => e.fuel_type === 'lpg')
     const petrolEntries = fuel.filter((e) => e.fuel_type === 'petrol')
 
-    const calcFillToFill = (entries: typeof fuel, maxDist: number, minL100: number, maxL100: number) => {
+    const calcFillToFill = (entries: typeof fuel, maxDist: number) => {
       for (let i = 1; i < entries.length; i++) {
         const prev = entries[i - 1]
         const curr = entries[i]
         const dist = curr.mileage - prev.mileage
         if (dist <= 0 || dist > maxDist) continue
         const lPer100 = (Number(prev.liters) / dist) * 100
-        // Partial top-ups produce implausibly low/high readings — skip them
-        if (lPer100 < minL100 || lPer100 > maxL100) continue
         consumptionHistory.push({ date: curr.date, fuelType: curr.fuel_type, lPer100km: +lPer100.toFixed(2) })
         if (curr.fuel_type === 'lpg') lpgConsumptions.push(lPer100)
         else petrolConsumptions.push(lPer100)
       }
     }
 
-    // LPG: plausible range 3–35 L/100km; partial top-ups produce values outside this
-    calcFillToFill(lpgEntries, 1200, 3, 35)
-    // Petrol on dual-fuel: genuinely low contribution (0.05–5 L/100km across all km driven)
-    calcFillToFill(petrolEntries, 15000, 0.05, 5)
+    calcFillToFill(lpgEntries, 1200)
+    calcFillToFill(petrolEntries, 15000)
 
     // Average fill-to-fill readings per month so the chart shows one smooth
     // data point per month instead of noisy per-fill-up spikes
