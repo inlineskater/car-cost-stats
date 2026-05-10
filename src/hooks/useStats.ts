@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, parseISO, subMonths, startOfMonth } from 'date-fns'
+import { format, parseISO, subMonths, startOfMonth, differenceInDays } from 'date-fns'
 import { useAllFuelEntries } from './useFuelEntries'
 import { useAllOtherCosts } from './useOtherCosts'
 import type { StatsData, MonthlyBreakdown, ConsumptionPoint } from '@/types'
@@ -89,6 +89,26 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       ? (avgPricePerLiterPetrol - avgPricePerLiterLpg) * totalLitersLpg
       : null
 
+    // fill-up interval stats for LPG
+    let avgDaysBetweenLpgFills: number | null = null
+    let avgKmBetweenLpgFills: number | null = null
+    let maxKmOnOneLpgTank: number | null = null
+    if (lpgEntries.length >= 2) {
+      const dayGaps: number[] = []
+      const kmGaps: number[] = []
+      for (let i = 1; i < lpgEntries.length; i++) {
+        const days = differenceInDays(parseISO(lpgEntries[i].date), parseISO(lpgEntries[i - 1].date))
+        const km = lpgEntries[i].mileage - lpgEntries[i - 1].mileage
+        if (days > 0) dayGaps.push(days)
+        if (km > 0) kmGaps.push(km)
+      }
+      if (dayGaps.length) avgDaysBetweenLpgFills = Math.round(dayGaps.reduce((a, b) => a + b, 0) / dayGaps.length)
+      if (kmGaps.length) {
+        avgKmBetweenLpgFills = Math.round(kmGaps.reduce((a, b) => a + b, 0) / kmGaps.length)
+        maxKmOnOneLpgTank = Math.max(...kmGaps)
+      }
+    }
+
     // monthly breakdown last 12 months
     const monthlyBreakdown: MonthlyBreakdown[] = []
     const now = new Date()
@@ -110,6 +130,27 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       monthlyBreakdown.push({ month: monthKey, label: monthLabel, lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost })
     }
 
+    // month-over-month deltas — compare two most-recent months that have any cost
+    const monthsWithData = monthlyBreakdown.filter((m) => m.total > 0)
+    let momCostDelta: number | null = null
+    let momLpgLitersDelta: number | null = null
+    let momConsumptionDelta: number | null = null
+    if (monthsWithData.length >= 2) {
+      const curr = monthsWithData[monthsWithData.length - 1]
+      const prev = monthsWithData[monthsWithData.length - 2]
+      if (prev.total > 0) momCostDelta = +((curr.total - prev.total) / prev.total * 100).toFixed(1)
+
+      const currLpgL = lpgEntries.filter((e) => e.date.startsWith(curr.month)).reduce((s, e) => s + Number(e.liters), 0)
+      const prevLpgL = lpgEntries.filter((e) => e.date.startsWith(prev.month)).reduce((s, e) => s + Number(e.liters), 0)
+      if (prevLpgL > 0) momLpgLitersDelta = +((currLpgL - prevLpgL) / prevLpgL * 100).toFixed(1)
+
+      const currConsumption = monthlyConsumption.find((p) => p.fuelType === 'lpg' && p.date.startsWith(curr.month))
+      const prevConsumption = monthlyConsumption.find((p) => p.fuelType === 'lpg' && p.date.startsWith(prev.month))
+      if (currConsumption && prevConsumption && prevConsumption.lPer100km > 0) {
+        momConsumptionDelta = +((currConsumption.lPer100km - prevConsumption.lPer100km) / prevConsumption.lPer100km * 100).toFixed(1)
+      }
+    }
+
     return {
       totalFuelCost,
       totalOtherCost,
@@ -129,6 +170,12 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       fillUpCountLpg: lpgEntries.length,
       fillUpCountPetrol: petrolEntries.length,
       lpgSavings: lpgSavings !== null ? +lpgSavings.toFixed(2) : null,
+      momCostDelta,
+      momLpgLitersDelta,
+      momConsumptionDelta,
+      avgDaysBetweenLpgFills,
+      avgKmBetweenLpgFills,
+      maxKmOnOneLpgTank,
     }
   }, [fuel, costs])
 

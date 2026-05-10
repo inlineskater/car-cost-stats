@@ -3,6 +3,7 @@ import StatCard from '@/components/stats/StatCard'
 import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import FuelTypeDonut from '@/components/stats/FuelTypeDonut'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
+import PriceTrendChart from '@/components/stats/PriceTrendChart'
 import Spinner from '@/components/ui/Spinner'
 import Card from '@/components/ui/Card'
 import { useStats } from '@/hooks/useStats'
@@ -107,6 +108,37 @@ export default function Statistics() {
           <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel type split</h3>
           <FuelTypeDonut lpgShare={stats.lpgShare} petrolShare={stats.petrolShare} />
         </Card>
+
+        <Card>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel price trend (zł/L)</h3>
+          <PriceTrendChart />
+        </Card>
+
+        {(stats.avgDaysBetweenLpgFills !== null || stats.avgKmBetweenLpgFills !== null) && (
+          <div className="grid grid-cols-2 gap-3">
+            {stats.avgDaysBetweenLpgFills !== null && (
+              <StatCard
+                label="LPG interval"
+                value={`${stats.avgDaysBetweenLpgFills}d`}
+                sub="avg days between fills"
+              />
+            )}
+            {stats.avgKmBetweenLpgFills !== null && (
+              <StatCard
+                label="LPG range"
+                value={formatKm(stats.avgKmBetweenLpgFills)}
+                sub="avg km per tank"
+              />
+            )}
+            {stats.maxKmOnOneLpgTank !== null && (
+              <StatCard
+                label="Best LPG tank"
+                value={formatKm(stats.maxKmOnOneLpgTank)}
+                sub="max km on one fill"
+              />
+            )}
+          </div>
+        )}
       </div>
     </div>
   )

@@ -54,6 +54,7 @@ export default function Dashboard() {
                   label="Avg LPG"
                   value={`${stats.avgConsumptionLpg} L`}
                   sub="per 100 km"
+                  delta={stats.momConsumptionDelta}
                 />
               )}
               {stats.avgConsumptionPetrol !== null && (
@@ -63,6 +64,12 @@ export default function Dashboard() {
                   sub="per 100 km"
                 />
               )}
+              <StatCard
+                label="This month"
+                value={formatCurrency(stats.monthlyBreakdown[stats.monthlyBreakdown.length - 1]?.total ?? 0)}
+                sub="total cost"
+                delta={stats.momCostDelta}
+              />
             </div>
 
             <UpcomingCostsList costs={upcoming} />

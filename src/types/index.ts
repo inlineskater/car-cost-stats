@@ -51,6 +51,14 @@ export interface StatsData {
   fillUpCountLpg: number
   fillUpCountPetrol: number
   lpgSavings: number | null   // cost saved vs buying same volume at petrol prices
+  // month-over-month deltas (positive = more/worse, negative = less/better)
+  momCostDelta: number | null    // % change in total cost vs previous month
+  momLpgLitersDelta: number | null  // % change in LPG liters vs previous month
+  momConsumptionDelta: number | null  // % change in avg LPG L/100km vs previous month
+  // fill-up interval stats (LPG)
+  avgDaysBetweenLpgFills: number | null
+  avgKmBetweenLpgFills: number | null
+  maxKmOnOneLpgTank: number | null
 }
 
 export interface HistoryFilters {

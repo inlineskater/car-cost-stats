@@ -1,13 +1,15 @@
 import { format, subMonths } from 'date-fns'
+import { Download } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import FuelEntryCard from '@/components/fuel/FuelEntryCard'
 import OtherCostCard from '@/components/costs/OtherCostCard'
 import Spinner from '@/components/ui/Spinner'
-import { useFuelEntries, useDeleteFuelEntry } from '@/hooks/useFuelEntries'
-import { useOtherCosts, useDeleteOtherCost } from '@/hooks/useOtherCosts'
+import { useFuelEntries, useDeleteFuelEntry, useAllFuelEntries } from '@/hooks/useFuelEntries'
+import { useOtherCosts, useDeleteOtherCost, useAllOtherCosts } from '@/hooks/useOtherCosts'
 import { useAppStore } from '@/stores/appStore'
 import type { HistoryFilters, FuelType } from '@/types'
 import { cn } from '@/lib/utils'
+import { exportCsv } from '@/lib/exportCsv'
 
 const FUEL_TABS: { value: HistoryFilters['fuelType']; label: string }[] = [
   { value: 'all', label: 'All' },
@@ -37,6 +39,9 @@ export default function History() {
     showFuel ? { fuelType: fuelTypeFilter, month: historyFilters.month } : undefined,
   )
   const { data: otherCosts = [], isLoading: cl } = useOtherCosts(historyFilters.month)
+
+  const { data: allFuelEntries = [] } = useAllFuelEntries()
+  const { data: allOtherCosts = [] } = useAllOtherCosts()
 
   const deleteFuel = useDeleteFuelEntry()
   const deleteCost = useDeleteOtherCost()
@@ -73,7 +78,17 @@ export default function History() {
 
   return (
     <div>
-      <TopBar title="History" />
+      <TopBar
+        title="History"
+        action={
+          <button
+            onClick={() => exportCsv(allFuelEntries, allOtherCosts)}
+            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+          >
+            <Download size={18} />
+          </button>
+        }
+      />
 
       {/* Filters */}
       <div className="sticky top-14 z-20 bg-[#F2F2F7] border-b border-gray-200 px-4 py-3 space-y-2">
