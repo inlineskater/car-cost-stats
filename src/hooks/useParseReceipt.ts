@@ -24,7 +24,14 @@ function roundMileage(value: unknown): number | null {
   return Number.isFinite(n) ? Math.round(n) : null
 }
 
-function normalizeParsedReceipt(data: RawParsedReceiptData): ParsedReceiptData {
+function normalizeImageIndex(value: unknown, imageCount: number): number | null {
+  if (value == null) return null
+  const n = typeof value === 'number' ? value : Number(value)
+  if (!Number.isInteger(n) || n < 0 || n >= imageCount) return null
+  return n
+}
+
+function normalizeParsedReceipt(data: RawParsedReceiptData, imageCount: number): ParsedReceiptData {
   const hasLegacyEntry =
     data.fuel_type != null ||
     data.liters != null ||
@@ -38,6 +45,7 @@ function normalizeParsedReceipt(data: RawParsedReceiptData): ParsedReceiptData {
           liters: data.liters ?? null,
           price_per_liter: data.price_per_liter ?? null,
           total_cost: data.total_cost ?? null,
+          source_image_index: data.source_image_index ?? 0,
         }]
       : []
   const confidence = data.confidence === 'high' || data.confidence === 'medium' || data.confidence === 'low'
@@ -47,6 +55,7 @@ function normalizeParsedReceipt(data: RawParsedReceiptData): ParsedReceiptData {
   return {
     date: data.date ?? null,
     mileage: roundMileage(data.mileage),
+    odometer_image_index: normalizeImageIndex(data.odometer_image_index, imageCount),
     confidence,
     parsing_notes: data.parsing_notes ?? '',
     entries: entries.map((entry) => ({
@@ -54,6 +63,7 @@ function normalizeParsedReceipt(data: RawParsedReceiptData): ParsedReceiptData {
       liters: roundTo(entry.liters, 3),
       price_per_liter: roundTo(entry.price_per_liter, 4),
       total_cost: roundTo(entry.total_cost, 2),
+      source_image_index: normalizeImageIndex(entry.source_image_index, imageCount),
     })),
   }
 }
@@ -76,7 +86,7 @@ export function useParseReceipt() {
         throw new Error(detail)
       }
       if (!data) throw new Error('No data returned from AI')
-      return normalizeParsedReceipt(data)
+      return normalizeParsedReceipt(data, images.length)
     },
   })
 }

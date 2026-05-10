@@ -8,7 +8,7 @@ import FuelTypeToggle from './FuelTypeToggle'
 import type { FuelType, ParsedFuelEntry } from '@/types'
 import { todayISO } from '@/lib/utils'
 
-export interface FuelFormPrefill extends ParsedFuelEntry {
+export interface FuelFormPrefill extends Omit<ParsedFuelEntry, 'source_image_index'> {
   date: string | null
   mileage: number | null
 }

@@ -19,11 +19,13 @@ interface FuelEntry {
   liters: number | null
   price_per_liter: number | null
   total_cost: number | null
+  source_image_index: number | null
 }
 
 interface ParsedData {
   date: string | null
   mileage: number | null
+  odometer_image_index: number | null
   entries: FuelEntry[]
   confidence: 'high' | 'medium' | 'low'
   parsing_notes: string
@@ -33,23 +35,27 @@ const GEMINI_URL =
   'https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent'
 
 const EXTRACTION_PROMPT = `You are a data extraction assistant for a car fuel cost tracking app.
-You will receive one or two images — they may be a fuel station receipt and/or a car odometer photo.
+You will receive one or more images. They may include several fuel station receipts from the same day/import and/or a car odometer photo.
+Images are provided in order. The first image is index 0, the second is index 1, and so on.
 Identify which image is which automatically, then extract all available data.
 
 IMPORTANT: A single receipt may contain BOTH LPG and petrol fuel types as separate line items.
 If you see multiple fuel types on one receipt, return ALL of them as separate entries in the "entries" array.
+If you see multiple receipt photos, return fuel items from ALL receipt photos as separate entries.
 
 Return JSON with this exact schema:
 
 {
   "date": "YYYY-MM-DD or null",
   "mileage": integer or null,
+  "odometer_image_index": integer image index or null,
   "entries": [
     {
       "fuel_type": "lpg" or "petrol" or null,
       "liters": number or null,
       "price_per_liter": number or null,
-      "total_cost": number or null
+      "total_cost": number or null,
+      "source_image_index": integer image index or null
     }
   ],
   "confidence": "high" or "medium" or "low",
@@ -57,15 +63,17 @@ Return JSON with this exact schema:
 }
 
 Rules:
-- date: receipt date as YYYY-MM-DD; null if not visible
+- date: receipt date as YYYY-MM-DD; if multiple receipt dates conflict, use the clearest date and mention the conflict in parsing_notes; null if not visible
 - mileage: odometer reading as an integer in km; convert from miles if needed (×1.60934, round); null if no odometer photo
-- entries: array with 1 entry normally, 2 entries if receipt shows both LPG and petrol
+- odometer_image_index: image index for the odometer photo; null if no odometer photo
+- entries: array with 1 entry normally, 2 entries if a receipt shows both LPG and petrol, more if multiple receipts are present
 - fuel_type: "lpg" for LPG/autogas/CNG/GPL/gaz/LPG; "petrol" for petrol/gasoline/benzyna/PB95/PB98/Pb/E10; null if unclear
 - liters: volume dispensed as a decimal number
 - price_per_liter: unit price; compute from total/liters if not shown explicitly
 - total_cost: amount paid for THIS fuel type only (no currency symbol)
+- source_image_index: image index of the receipt containing this fuel line; if one receipt has LPG and petrol, both entries use the same source_image_index
 - confidence: "high" if 5+ fields extracted cleanly; "medium" if 3-4; "low" if fewer
-- parsing_notes: note image roles, multiple fuels detected, ambiguities, computed fields, or quality issues`
+- parsing_notes: note image roles, multiple receipts or fuels detected, ambiguities, computed fields, or quality issues`
 
 const CORS = {
   'Access-Control-Allow-Origin': '*',
@@ -73,7 +81,7 @@ const CORS = {
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
 }
 
-const MAX_IMAGES = 2
+const MAX_IMAGES = 6
 const MAX_BASE64_CHARS = 3_000_000
 const ALLOWED_MIME_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp'])
 const BASE64_RE = /^[A-Za-z0-9+/]+={0,2}$/
@@ -104,6 +112,13 @@ function normalizeFuelType(v: unknown): FuelEntry['fuel_type'] {
 
 function normalizeConfidence(v: unknown): ParsedData['confidence'] {
   return v === 'high' || v === 'medium' || v === 'low' ? v : 'low'
+}
+
+function normalizeImageIndex(v: unknown, imageCount: number): number | null {
+  if (v == null) return null
+  const n = typeof v === 'number' ? v : Number(v)
+  if (!Number.isInteger(n) || n < 0 || n >= imageCount) return null
+  return n
 }
 
 async function requireAuthenticatedUser(req: Request): Promise<AuthenticatedUser | Response> {
@@ -221,6 +236,7 @@ serve(async (req: Request) => {
             properties: {
               date: { type: 'STRING', nullable: true },
               mileage: { type: 'INTEGER', nullable: true },
+              odometer_image_index: { type: 'INTEGER', nullable: true },
               entries: {
                 type: 'ARRAY',
                 items: {
@@ -230,14 +246,15 @@ serve(async (req: Request) => {
                     liters: { type: 'NUMBER', nullable: true },
                     price_per_liter: { type: 'NUMBER', nullable: true },
                     total_cost: { type: 'NUMBER', nullable: true },
+                    source_image_index: { type: 'INTEGER', nullable: true },
                   },
-                  required: ['fuel_type', 'liters', 'price_per_liter', 'total_cost'],
+                  required: ['fuel_type', 'liters', 'price_per_liter', 'total_cost', 'source_image_index'],
                 },
               },
               confidence: { type: 'STRING', enum: ['high', 'medium', 'low'] },
               parsing_notes: { type: 'STRING' },
             },
-            required: ['entries', 'confidence', 'parsing_notes'],
+            required: ['odometer_image_index', 'entries', 'confidence', 'parsing_notes'],
           },
         },
       }),
@@ -279,6 +296,7 @@ serve(async (req: Request) => {
             liters: parsed.liters ?? null,
             price_per_liter: parsed.price_per_liter ?? null,
             total_cost: parsed.total_cost ?? null,
+            source_image_index: parsed.source_image_index ?? 0,
           }]
         : []
     }
@@ -286,6 +304,7 @@ serve(async (req: Request) => {
     const result: ParsedData = {
       date: parsed.date ?? null,
       mileage: roundMileage(parsed.mileage),
+      odometer_image_index: normalizeImageIndex(parsed.odometer_image_index, images.length),
       confidence: normalizeConfidence(parsed.confidence),
       parsing_notes: parsed.parsing_notes ?? '',
       entries: parsed.entries.map((e) => ({
@@ -293,6 +312,7 @@ serve(async (req: Request) => {
         liters: roundTo(e.liters, 3),
         price_per_liter: roundTo(e.price_per_liter, 4),
         total_cost: roundTo(e.total_cost, 2),
+        source_image_index: normalizeImageIndex(e.source_image_index, images.length),
       })),
     }
 

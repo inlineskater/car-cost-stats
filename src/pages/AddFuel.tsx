@@ -13,6 +13,8 @@ import type { ParsedReceiptData } from '@/types'
 
 type Phase = 'capture' | 'parsing' | 'confirm'
 
+const MAX_IMPORT_IMAGES = 6
+
 function roundTo(value: number, decimals: number): number {
   return Number(value.toFixed(decimals))
 }
@@ -25,10 +27,8 @@ export default function AddFuel() {
   const [images, setImages] = useState<CapturedImage[]>([])
   const [parsed, setParsed] = useState<ParsedReceiptData | null>(null)
   const [entryIndex, setEntryIndex] = useState(0)
-  const [sharedImageUrls, setSharedImageUrls] = useState<{
-    receipt: string | null
-    odometer: string | null
-  }>({ receipt: null, odometer: null })
+  const [uploadedReceiptUrls, setUploadedReceiptUrls] = useState<Record<number, string>>({})
+  const [uploadedOdometerUrl, setUploadedOdometerUrl] = useState<string | null>(null)
   const [processing, setProcessing] = useState(false)
 
   const galleryRef = useRef<HTMLInputElement>(null)
@@ -51,8 +51,16 @@ export default function AddFuel() {
   }
 
   async function handleFiles(e: React.ChangeEvent<HTMLInputElement>) {
-    const files = Array.from(e.target.files ?? []).slice(0, 2 - images.length)
-    if (!files.length) return
+    const selectedFiles = Array.from(e.target.files ?? [])
+    const remainingSlots = MAX_IMPORT_IMAGES - images.length
+    const files = selectedFiles.slice(0, remainingSlots)
+    if (!files.length) {
+      e.target.value = ''
+      return
+    }
+    if (selectedFiles.length > remainingSlots) {
+      addToast(`Only ${MAX_IMPORT_IMAGES} photos can be imported at once.`, 'info')
+    }
     setProcessing(true)
     try {
       const compressed = await Promise.all(files.map((f) => compressImage(f)))
@@ -62,7 +70,7 @@ export default function AddFuel() {
         mimeType,
         preview: URL.createObjectURL(file),
       }))
-      setImages((prev) => [...prev, ...newImages].slice(0, 2))
+      setImages((prev) => [...prev, ...newImages].slice(0, MAX_IMPORT_IMAGES))
     } finally {
       setProcessing(false)
       e.target.value = ''
@@ -70,7 +78,11 @@ export default function AddFuel() {
   }
 
   function removeImage(idx: number) {
-    setImages((prev) => prev.filter((_, i) => i !== idx))
+    setImages((prev) => {
+      const removed = prev[idx]
+      if (removed) URL.revokeObjectURL(removed.preview)
+      return prev.filter((_, i) => i !== idx)
+    })
   }
 
   async function handleParseWithAI() {
@@ -80,12 +92,13 @@ export default function AddFuel() {
       const result = await parseReceipt.mutateAsync(images)
       setParsed(result)
       setEntryIndex(0)
-      setSharedImageUrls({ receipt: null, odometer: null })
+      setUploadedReceiptUrls({})
+      setUploadedOdometerUrl(null)
       if (result.confidence === 'low') {
         addToast('AI confidence is low — please check the values.', 'info')
       }
       if (result.entries.length > 1) {
-        addToast(`${result.entries.length} fuel types detected on receipt.`, 'info')
+        addToast(`${result.entries.length} fuel entries detected across photos.`, 'info')
       }
     } catch (err: unknown) {
       const msg = err instanceof Error ? err.message : String(err)
@@ -94,8 +107,23 @@ export default function AddFuel() {
     setPhase('confirm')
   }
 
+  function receiptImageIndexForCurrentEntry(): number | null {
+    const parsedIndex = parsed?.entries[entryIndex]?.source_image_index
+    if (parsedIndex != null && images[parsedIndex]) return parsedIndex
+    return images.length ? 0 : null
+  }
+
+  function odometerImageIndexForCurrentImport(): number | null {
+    const parsedIndex = parsed?.odometer_image_index
+    if (parsedIndex != null && images[parsedIndex]) return parsedIndex
+    return !parsed && images.length > 1 ? 1 : null
+  }
+
   async function handleSubmit(data: FuelFormData) {
     const isLast = entryIndex >= totalEntries - 1
+    const receiptImageIndex = receiptImageIndexForCurrentEntry()
+    const odometerImageIndex = odometerImageIndexForCurrentImport()
+    const receiptImageUrl = receiptImageIndex == null ? null : uploadedReceiptUrls[receiptImageIndex] ?? null
     try {
       const saved = await addFuelEntry.mutateAsync({
         entry: {
@@ -107,24 +135,24 @@ export default function AddFuel() {
           mileage: data.mileage,
           notes: data.notes || null,
           ai_parsed: parsed !== null,
-          receipt_image_url: sharedImageUrls.receipt,
-          odometer_image_url: sharedImageUrls.odometer,
+          receipt_image_url: receiptImageUrl,
+          odometer_image_url: uploadedOdometerUrl,
         },
-        // Only attach images to the first entry to avoid duplicate uploads
-        receiptFile: entryIndex === 0 ? images[0]?.file : undefined,
-        odometerFile: entryIndex === 0 ? images[1]?.file : undefined,
+        receiptFile: receiptImageIndex != null && !receiptImageUrl ? images[receiptImageIndex]?.file : undefined,
+        odometerFile: odometerImageIndex != null && !uploadedOdometerUrl ? images[odometerImageIndex]?.file : undefined,
       })
+
+      if (receiptImageIndex != null && saved.receipt_image_url) {
+        setUploadedReceiptUrls((prev) => ({ ...prev, [receiptImageIndex]: saved.receipt_image_url }))
+      }
+      if (odometerImageIndex != null && saved.odometer_image_url) {
+        setUploadedOdometerUrl(saved.odometer_image_url)
+      }
 
       if (isLast) {
         addToast('Fuel entry saved!', 'success')
         navigate('/')
       } else {
-        if (entryIndex === 0) {
-          setSharedImageUrls({
-            receipt: saved.receipt_image_url,
-            odometer: saved.odometer_image_url,
-          })
-        }
         addToast('Entry saved — confirm the next fuel type.', 'success')
         setEntryIndex((i) => i + 1)
       }
@@ -141,13 +169,13 @@ export default function AddFuel() {
         {phase === 'capture' && (
           <>
             {images.length > 0 && (
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                 {images.map((img, idx) => (
                   <div key={idx} className="relative">
                     <img
                       src={img.preview}
                       alt={`Photo ${idx + 1}`}
-                      className="w-full h-36 object-cover rounded-xl border border-slate-700"
+                      className="w-full h-32 object-cover rounded-xl border border-slate-700"
                     />
                     <button
                       onClick={() => removeImage(idx)}
@@ -156,19 +184,19 @@ export default function AddFuel() {
                       <X size={14} />
                     </button>
                     <p className="text-[11px] text-slate-400 mt-1 text-center">
-                      {idx === 0 ? 'Photo 1' : 'Photo 2'}
+                      Photo {idx + 1}
                     </p>
                   </div>
                 ))}
               </div>
             )}
 
-            {images.length < 2 && (
+            {images.length < MAX_IMPORT_IMAGES && (
               <div className="space-y-3">
                 <p className="text-sm text-slate-400 text-center">
                   {images.length === 0
-                    ? 'Add up to 2 photos (receipt + odometer)'
-                    : '1 photo added — add a second if you have one'}
+                    ? `Add up to ${MAX_IMPORT_IMAGES} photos (receipts + odometer)`
+                    : `${images.length} of ${MAX_IMPORT_IMAGES} photos added`}
                 </p>
 
                 {processing ? (
@@ -183,7 +211,9 @@ export default function AddFuel() {
                   >
                     <ImageIcon size={28} />
                     <span className="text-sm font-medium">Select photos</span>
-                    <span className="text-[11px] text-slate-500">choose up to 2 at once</span>
+                    <span className="text-[11px] text-slate-500">
+                      choose up to {MAX_IMPORT_IMAGES - images.length} more
+                    </span>
                   </button>
                 )}
 
@@ -227,7 +257,7 @@ export default function AddFuel() {
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <Spinner className="w-10 h-10" />
             <p className="text-slate-300 font-medium">Reading your photos…</p>
-            <p className="text-slate-500 text-sm text-center">Usually takes 3–5 seconds</p>
+            <p className="text-slate-500 text-sm text-center">Several photos can take a little longer</p>
           </div>
         )}
 

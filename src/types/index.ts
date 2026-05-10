@@ -5,11 +5,13 @@ export interface ParsedFuelEntry {
   liters: number | null
   price_per_liter: number | null
   total_cost: number | null
+  source_image_index: number | null
 }
 
 export interface ParsedReceiptData {
   date: string | null
   mileage: number | null
+  odometer_image_index: number | null
   entries: ParsedFuelEntry[]
   confidence: 'high' | 'medium' | 'low'
   parsing_notes: string
