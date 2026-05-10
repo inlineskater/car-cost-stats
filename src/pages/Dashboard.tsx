@@ -20,7 +20,7 @@ import { formatCurrency, formatKm } from '@/lib/utils'
 
 export default function Dashboard() {
   const navigate = useNavigate()
-  const [amortized, setAmortized] = useState(false)
+  const [amortized, setAmortized] = useState(true)
   const { data: stats, isLoading } = useStats()
   const upcoming = useUpcomingCosts()
   const { data: fuelEntries = [] } = useAllFuelEntries()
