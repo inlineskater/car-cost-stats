@@ -80,7 +80,8 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     // per-category cost/km breakdown
     const costByCategory: Record<string, number> = {}
     for (const c of costs) {
-      costByCategory[c.category] = (costByCategory[c.category] ?? 0) + Number(c.cost)
+      const cat = c.category === 'repair' ? 'service' : c.category
+      costByCategory[cat] = (costByCategory[cat] ?? 0) + Number(c.cost)
     }
     const costPerKmByCategory: Record<string, number> = {}
     if (totalKm > 0) {
@@ -156,8 +157,8 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       const monthCosts = costs.filter((e) => e.date.startsWith(monthKey))
       const insuranceCost = monthCosts.filter((e) => e.category === 'insurance').reduce((s, e) => s + Number(e.cost), 0)
       const inspectionCost = monthCosts.filter((e) => e.category === 'inspection').reduce((s, e) => s + Number(e.cost), 0)
-      const serviceCost = monthCosts.filter((e) => e.category === 'service').reduce((s, e) => s + Number(e.cost), 0)
-      const repairCost = monthCosts.filter((e) => e.category === 'repair').reduce((s, e) => s + Number(e.cost), 0)
+      const serviceCost = monthCosts.filter((e) => e.category === 'service' || e.category === 'repair').reduce((s, e) => s + Number(e.cost), 0)
+      const repairCost = 0
       const otherCatCost = monthCosts.filter((e) => e.category === 'other' || e.category === 'tax').reduce((s, e) => s + Number(e.cost), 0)
 
       const thisMax = maxMileageByMonth.get(monthKey) ?? null
@@ -199,8 +200,8 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     }
     const amortInsurance = (catTotals['insurance'] ?? 0) / 12
     const amortInspection = (catTotals['inspection'] ?? 0) / 12
-    const amortService = (catTotals['service'] ?? 0) / 12
-    const amortRepair = (catTotals['repair'] ?? 0) / 12
+    const amortService = ((catTotals['service'] ?? 0) + (catTotals['repair'] ?? 0)) / 12
+    const amortRepair = 0
     const amortOtherCat = ((catTotals['other'] ?? 0) + (catTotals['tax'] ?? 0)) / 12
 
     const monthlyBreakdownAmortized: MonthlyBreakdown[] = monthlyBreakdown.map((m) => {
