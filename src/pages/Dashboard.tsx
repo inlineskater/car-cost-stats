@@ -51,17 +51,36 @@ export default function Dashboard() {
                 delta={stats.momCostDelta}
               />
               <StatCard
-                label="Cost / km"
-                value={stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)}` : '—'}
-                sub="zł/km"
-              />
-              <StatCard
                 label="LPG avg"
                 value={stats.avgConsumptionLpg !== null ? `${stats.avgConsumptionLpg}` : '—'}
                 sub="L/100km"
                 delta={stats.momConsumptionDelta}
               />
             </div>
+
+            {/* Cost per km breakdown */}
+            {stats.costPerKm !== null && (
+              <Card>
+                <div className="flex items-center justify-between mb-2">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide">Cost / km</p>
+                  <p className="text-lg font-bold text-gray-900">{stats.costPerKm.toFixed(2)} zł</p>
+                </div>
+                <div className="space-y-1.5">
+                  {Object.entries(stats.costPerKmByCategory)
+                    .filter(([, v]) => v > 0.001)
+                    .sort((a, b) => b[1] - a[1])
+                    .map(([cat, val]) => (
+                      <div key={cat} className="flex items-center gap-2 text-xs">
+                        <span className="w-16 text-gray-500 capitalize">{cat}</span>
+                        <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                          <div className="h-full bg-blue-400 rounded-full" style={{ width: `${(val / stats.costPerKm!) * 100}%` }} />
+                        </div>
+                        <span className="text-gray-600 w-12 text-right">{val.toFixed(2)}</span>
+                      </div>
+                    ))}
+                </div>
+              </Card>
+            )}
 
             {/* Monthly costs chart */}
             <Card>
