@@ -17,13 +17,13 @@ export default function ToastContainer() {
         <div
           key={t.id}
           className={cn(
-            'flex items-center gap-3 w-full max-w-sm bg-slate-800 border border-slate-700',
-            'rounded-xl px-4 py-3 shadow-xl pointer-events-auto',
+            'flex items-center gap-3 w-full max-w-sm bg-white border border-gray-200',
+            'rounded-xl px-4 py-3 shadow-lg pointer-events-auto',
           )}
         >
           {icons[t.type]}
-          <p className="text-sm text-slate-100 flex-1">{t.message}</p>
-          <button onClick={() => removeToast(t.id)} className="text-slate-500 hover:text-slate-300">
+          <p className="text-sm text-gray-900 flex-1">{t.message}</p>
+          <button onClick={() => removeToast(t.id)} className="text-gray-400 hover:text-gray-600">
             <X size={16} />
           </button>
         </div>

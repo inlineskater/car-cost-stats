@@ -24,7 +24,7 @@ export default function Dashboard() {
         action={
           <button
             onClick={() => navigate('/add-fuel')}
-            className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-500 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors"
+            className="flex items-center gap-1.5 bg-blue-500 hover:bg-blue-400 text-white text-sm font-semibold px-3 py-1.5 rounded-xl transition-colors shadow-sm"
           >
             <Plus size={16} />
             Add
@@ -70,10 +70,10 @@ export default function Dashboard() {
           </>
         ) : (
           <div className="text-center py-12">
-            <p className="text-slate-400 mb-4">No data yet.</p>
+            <p className="text-gray-400 mb-4">No data yet.</p>
             <button
               onClick={() => navigate('/add-fuel')}
-              className="bg-blue-600 hover:bg-blue-500 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors"
+              className="bg-blue-500 hover:bg-blue-400 text-white font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm"
             >
               Add your first fill-up
             </button>

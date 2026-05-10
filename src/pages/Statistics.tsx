@@ -24,7 +24,7 @@ export default function Statistics() {
     return (
       <div>
         <TopBar title="Statistics" />
-        <p className="text-center text-slate-500 py-16">Add some entries to see statistics.</p>
+        <p className="text-center text-gray-400 py-16">Add some entries to see statistics.</p>
       </div>
     )
   }
@@ -77,23 +77,34 @@ export default function Statistics() {
         </div>
 
         <Card>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3">Monthly costs</h3>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Monthly costs</h3>
           <MonthlyBarChart data={stats.monthlyBreakdown} />
         </Card>
 
-        <Card>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3">Fuel consumption (L/100km)</h3>
-          <ConsumptionLineChart data={stats.consumptionHistory} />
-          {stats.avgConsumptionLpg !== null && (
-            <p className="text-xs text-slate-400 mt-2">
-              Avg LPG: {stats.avgConsumptionLpg} L/100km
-              {stats.avgConsumptionPetrol !== null && ` · Avg Petrol: ${stats.avgConsumptionPetrol} L/100km`}
-            </p>
-          )}
-        </Card>
+        {stats.totalLitersLpg > 0 && (
+          <Card>
+            <h3 className="text-sm font-semibold text-green-400 mb-3">LPG consumption (L/100km)</h3>
+            <ConsumptionLineChart
+              data={stats.consumptionHistory}
+              fuelType="lpg"
+              avg={stats.avgConsumptionLpg}
+            />
+          </Card>
+        )}
+
+        {stats.totalLitersPetrol > 0 && (
+          <Card>
+            <h3 className="text-sm font-semibold text-blue-400 mb-3">Petrol contribution (L/100km)</h3>
+            <ConsumptionLineChart
+              data={stats.consumptionHistory}
+              fuelType="petrol"
+              avg={stats.avgConsumptionPetrol}
+            />
+          </Card>
+        )}
 
         <Card>
-          <h3 className="text-sm font-semibold text-slate-300 mb-3">Fuel type split</h3>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel type split</h3>
           <FuelTypeDonut lpgShare={stats.lpgShare} petrolShare={stats.petrolShare} />
         </Card>
       </div>
