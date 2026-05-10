@@ -7,10 +7,10 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-blue-600 hover:bg-blue-500 text-white',
-  secondary: 'bg-slate-700 hover:bg-slate-600 text-slate-100',
-  ghost: 'hover:bg-slate-800 text-slate-300',
-  danger: 'bg-red-700 hover:bg-red-600 text-white',
+  primary: 'bg-blue-500 hover:bg-blue-400 text-white',
+  secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
+  ghost: 'hover:bg-gray-100 text-gray-600',
+  danger: 'bg-red-500 hover:bg-red-400 text-white',
 }
 
 const sizes = {
@@ -26,7 +26,7 @@ export default function Button({ variant = 'primary', size = 'md', className, ch
       disabled={disabled}
       className={cn(
         'font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
-        'disabled:opacity-50 disabled:pointer-events-none',
+        'disabled:opacity-40 disabled:pointer-events-none',
         variants[variant],
         sizes[size],
         className,

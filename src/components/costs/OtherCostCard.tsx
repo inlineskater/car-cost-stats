@@ -32,7 +32,7 @@ export default function OtherCostCard({ cost, onDelete }: OtherCostCardProps) {
         : 'neutral'
 
   return (
-    <div className="bg-slate-800 border border-slate-700 rounded-2xl p-4">
+    <div className="bg-white rounded-2xl p-4 shadow-sm">
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -43,18 +43,18 @@ export default function OtherCostCard({ cost, onDelete }: OtherCostCardProps) {
                 Due {daysUntilDue <= 0 ? 'today' : `in ${daysUntilDue}d`}
               </Badge>
             )}
-            <span className="text-xs text-slate-400 ml-auto">{formatDate(cost.date)}</span>
+            <span className="text-xs text-gray-400 ml-auto">{formatDate(cost.date)}</span>
           </div>
-          <p className="text-xl font-bold text-white">{formatCurrency(cost.cost)}</p>
-          <p className="text-sm text-slate-300 mt-0.5 truncate">{cost.description}</p>
+          <p className="text-xl font-bold text-gray-900">{formatCurrency(cost.cost)}</p>
+          <p className="text-sm text-gray-600 mt-0.5 truncate">{cost.description}</p>
           {cost.next_due_date && (
-            <p className="text-xs text-slate-500 mt-0.5">Next due: {formatDate(cost.next_due_date)}</p>
+            <p className="text-xs text-gray-400 mt-0.5">Next due: {formatDate(cost.next_due_date)}</p>
           )}
         </div>
         {onDelete && (
           <button
             onClick={() => onDelete(cost.id)}
-            className="text-slate-600 hover:text-red-400 transition-colors p-1 shrink-0"
+            className="text-gray-300 hover:text-red-500 transition-colors p-1 shrink-0"
           >
             <Trash2 size={16} />
           </button>

@@ -13,18 +13,18 @@ export default function UpcomingCostsList({ costs }: UpcomingCostsListProps) {
 
   return (
     <div className="space-y-2">
-      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide px-1">Upcoming</h2>
+      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide px-1">Upcoming</h2>
       {costs.map((c) => {
         const days = differenceInDays(parseISO(c.next_due_date!), new Date())
         return (
-          <div key={c.id} className="bg-slate-800 border border-amber-800/50 rounded-2xl p-3 flex items-center gap-3">
-            <Clock size={18} className={days <= 7 ? 'text-red-400' : 'text-amber-400'} />
+          <div key={c.id} className="bg-white border border-amber-200 rounded-2xl p-3 flex items-center gap-3 shadow-sm">
+            <Clock size={18} className={days <= 7 ? 'text-red-500' : 'text-amber-500'} />
             <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-white truncate">{c.description}</p>
-              <p className="text-xs text-slate-400">{formatDate(c.next_due_date!)}</p>
+              <p className="text-sm font-medium text-gray-900 truncate">{c.description}</p>
+              <p className="text-xs text-gray-400">{formatDate(c.next_due_date!)}</p>
             </div>
             <div className="text-right shrink-0">
-              <p className="text-sm font-semibold text-white">{formatCurrency(c.cost)}</p>
+              <p className="text-sm font-semibold text-gray-900">{formatCurrency(c.cost)}</p>
               <Badge variant={days <= 7 ? 'danger' : 'warning'} className="text-[10px]">
                 {days <= 0 ? 'today' : `${days}d`}
               </Badge>

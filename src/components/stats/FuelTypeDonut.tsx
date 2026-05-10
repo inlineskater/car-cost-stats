@@ -12,7 +12,7 @@ export default function FuelTypeDonut({ lpgShare, petrolShare }: FuelTypeDonutPr
   ].filter((d) => d.value > 0)
 
   if (data.length === 0) {
-    return <p className="text-center text-slate-500 text-sm py-8">No data yet</p>
+    return <p className="text-center text-gray-400 text-sm py-8">No data yet</p>
   }
 
   return (
@@ -23,10 +23,10 @@ export default function FuelTypeDonut({ lpgShare, petrolShare }: FuelTypeDonutPr
           <Cell fill="#3b82f6" />
         </Pie>
         <Tooltip
-          contentStyle={{ background: '#1e293b', border: '1px solid #334155', borderRadius: 12 }}
+          contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 12 }}
           formatter={(v: number) => `${v}%`}
         />
-        <Legend wrapperStyle={{ color: '#94a3b8', fontSize: 12 }} />
+        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 12 }} />
       </PieChart>
     </ResponsiveContainer>
   )

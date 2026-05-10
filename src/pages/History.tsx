@@ -76,7 +76,7 @@ export default function History() {
       <TopBar title="History" />
 
       {/* Filters */}
-      <div className="sticky top-14 z-20 bg-slate-900 border-b border-slate-800 px-4 py-3 space-y-2">
+      <div className="sticky top-14 z-20 bg-[#F2F2F7] border-b border-gray-200 px-4 py-3 space-y-2">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {FUEL_TABS.map((tab) => (
             <button
@@ -85,8 +85,8 @@ export default function History() {
               className={cn(
                 'shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
                 historyFilters.fuelType === tab.value
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-slate-800 text-slate-400 hover:text-slate-200',
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'bg-white text-gray-500 hover:text-gray-700 shadow-sm',
               )}
             >
               {tab.label}
@@ -96,7 +96,7 @@ export default function History() {
         <select
           value={historyFilters.month ?? ''}
           onChange={(e) => setHistoryFilters({ month: e.target.value || null })}
-          className="bg-slate-800 border border-slate-700 rounded-lg px-3 py-1.5 text-sm text-slate-300 focus:outline-none"
+          className="bg-white border-0 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none shadow-sm"
         >
           <option value="">All months</option>
           {months.map((m) => (
@@ -109,7 +109,7 @@ export default function History() {
         {(fl || cl) && items.length === 0 ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : items.length === 0 ? (
-          <p className="text-center text-slate-500 py-12">No entries for this filter.</p>
+          <p className="text-center text-gray-400 py-12">No entries for this filter.</p>
         ) : (
           items.map((item) => <div key={`${item.type}-${item.id}`}>{item.el}</div>)
         )}

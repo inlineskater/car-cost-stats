@@ -15,15 +15,15 @@ export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEnt
       date: e.date,
       key: `fuel-${e.id}`,
       el: (
-        <div className="flex items-center gap-3 py-2.5 border-b border-slate-700/50 last:border-0">
+        <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
           <Badge variant={e.fuel_type === 'lpg' ? 'lpg' : 'petrol'} className="shrink-0">
             {e.fuel_type.toUpperCase()}
           </Badge>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-white">{formatLiters(e.liters)}</p>
-            <p className="text-xs text-slate-400">{formatDate(e.date)}</p>
+            <p className="text-sm text-gray-900">{formatLiters(e.liters)}</p>
+            <p className="text-xs text-gray-400">{formatDate(e.date)}</p>
           </div>
-          <p className="text-sm font-semibold text-white shrink-0">{formatCurrency(e.total_cost)}</p>
+          <p className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(e.total_cost)}</p>
         </div>
       ),
     })),
@@ -31,13 +31,13 @@ export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEnt
       date: c.date,
       key: `cost-${c.id}`,
       el: (
-        <div className="flex items-center gap-3 py-2.5 border-b border-slate-700/50 last:border-0">
+        <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
           <Badge variant="neutral" className="shrink-0 capitalize">{c.category}</Badge>
           <div className="flex-1 min-w-0">
-            <p className="text-sm text-white truncate">{c.description}</p>
-            <p className="text-xs text-slate-400">{formatDate(c.date)}</p>
+            <p className="text-sm text-gray-900 truncate">{c.description}</p>
+            <p className="text-xs text-gray-400">{formatDate(c.date)}</p>
           </div>
-          <p className="text-sm font-semibold text-white shrink-0">{formatCurrency(c.cost)}</p>
+          <p className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(c.cost)}</p>
         </div>
       ),
     })),
@@ -46,13 +46,13 @@ export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEnt
     .slice(0, 6)
 
   if (items.length === 0) {
-    return <p className="text-center text-slate-500 text-sm py-6">No entries yet</p>
+    return <p className="text-center text-gray-400 text-sm py-6">No entries yet</p>
   }
 
   return (
     <div>
-      <h2 className="text-sm font-semibold text-slate-400 uppercase tracking-wide px-1 mb-2">Recent</h2>
-      <div className="bg-slate-800 border border-slate-700 rounded-2xl px-4">
+      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Recent</h2>
+      <div className="bg-white rounded-2xl px-4 shadow-sm">
         {items.map((i) => <div key={i.key}>{i.el}</div>)}
       </div>
     </div>

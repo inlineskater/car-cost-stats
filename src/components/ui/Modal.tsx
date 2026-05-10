@@ -20,12 +20,12 @@ export default function Modal({ open, onClose, title, children }: ModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center">
-      <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-full sm:max-w-md bg-slate-800 border border-slate-700 rounded-t-2xl sm:rounded-2xl p-5 z-10 max-h-[90vh] overflow-y-auto">
+      <div className="absolute inset-0 bg-black/25 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-full sm:max-w-md bg-white rounded-t-2xl sm:rounded-2xl p-5 z-10 max-h-[90vh] overflow-y-auto shadow-xl">
         {title && (
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-lg font-semibold text-white">{title}</h2>
-            <button onClick={onClose} className="text-slate-400 hover:text-white">
+            <h2 className="text-lg font-semibold text-gray-900">{title}</h2>
+            <button onClick={onClose} className="text-gray-400 hover:text-gray-700">
               <X size={20} />
             </button>
           </div>
