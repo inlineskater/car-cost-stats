@@ -38,6 +38,9 @@ export interface StatsData {
   totalCost: number
   totalKm: number
   costPerKm: number | null
+  lpgCostPerKm: number | null
+  petrolCostPerKm: number | null
+  otherCostPerKm: number | null
   avgConsumptionLpg: number | null
   avgConsumptionPetrol: number | null
   monthlyBreakdown: MonthlyBreakdown[]

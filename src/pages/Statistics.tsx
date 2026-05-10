@@ -40,7 +40,11 @@ export default function Statistics() {
           <StatCard
             label="Cost / km"
             value={stats.costPerKm ? `${stats.costPerKm.toFixed(2)} zł` : '—'}
-            sub="fuel + other costs"
+            sub={[
+              stats.lpgCostPerKm !== null ? `LPG ${stats.lpgCostPerKm.toFixed(2)}` : null,
+              stats.petrolCostPerKm !== null ? `petrol ${stats.petrolCostPerKm.toFixed(2)}` : null,
+              stats.otherCostPerKm !== null && stats.otherCostPerKm > 0 ? `other ${stats.otherCostPerKm.toFixed(2)}` : null,
+            ].filter(Boolean).join(' · ') || 'fuel + other costs'}
           />
           <StatCard
             label="Fuel cost"

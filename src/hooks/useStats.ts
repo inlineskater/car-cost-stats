@@ -73,6 +73,10 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     const lpgShare = fuelTotal > 0 ? (lpgTotal / fuelTotal) * 100 : 0
     const petrolShare = fuelTotal > 0 ? (petrolTotal / fuelTotal) * 100 : 0
 
+    const lpgCostPerKm = totalKm > 0 ? lpgTotal / totalKm : null
+    const petrolCostPerKm = totalKm > 0 ? petrolTotal / totalKm : null
+    const otherCostPerKm = totalKm > 0 ? totalOtherCost / totalKm : null
+
     const totalLitersLpg = lpgEntries.reduce((s, e) => s + Number(e.liters), 0)
     const totalLitersPetrol = petrolEntries.reduce((s, e) => s + Number(e.liters), 0)
 
@@ -157,6 +161,9 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       totalCost: totalFuelCost + totalOtherCost,
       totalKm,
       costPerKm,
+      lpgCostPerKm: lpgCostPerKm !== null ? +lpgCostPerKm.toFixed(3) : null,
+      petrolCostPerKm: petrolCostPerKm !== null ? +petrolCostPerKm.toFixed(3) : null,
+      otherCostPerKm: otherCostPerKm !== null ? +otherCostPerKm.toFixed(3) : null,
       avgConsumptionLpg: avgConsumptionLpg !== null ? +avgConsumptionLpg.toFixed(2) : null,
       avgConsumptionPetrol: avgConsumptionPetrol !== null ? +avgConsumptionPetrol.toFixed(2) : null,
       monthlyBreakdown,
