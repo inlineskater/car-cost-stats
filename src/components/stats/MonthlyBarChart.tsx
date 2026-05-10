@@ -5,10 +5,11 @@ import type { MonthlyBreakdown } from '@/types'
 
 interface MonthlyBarChartProps {
   data: MonthlyBreakdown[]
+  fuelOnly?: boolean
 }
 
-export default function MonthlyBarChart({ data }: MonthlyBarChartProps) {
-  const chartData = data.map((m) => ({ ...m, _total: m.total }))
+export default function MonthlyBarChart({ data, fuelOnly }: MonthlyBarChartProps) {
+  const chartData = data.map((m) => ({ ...m, _total: fuelOnly ? (m.lpgCost ?? 0) + (m.petrolCost ?? 0) : m.total }))
 
   return (
     <ResponsiveContainer width="100%" height={240}>
@@ -24,10 +25,14 @@ export default function MonthlyBarChart({ data }: MonthlyBarChartProps) {
         />
         <Legend wrapperStyle={{ color: '#6B7280', fontSize: 11 }} />
         <Bar dataKey="lpgCost" name="LPG" stackId="a" fill="#22c55e" />
-        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill="#3b82f6" />
-        <Bar dataKey="otherCost" name="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]}>
-          <LabelList dataKey="_total" position="top" fill="#6B7280" fontSize={10} formatter={(v: number) => v > 0 ? v.toFixed(0) : ''} />
+        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill="#3b82f6" radius={fuelOnly ? [4, 4, 0, 0] : undefined}>
+          {fuelOnly && <LabelList dataKey="_total" position="top" fill="#6B7280" fontSize={10} formatter={(v: number) => v > 0 ? v.toFixed(0) : ''} />}
         </Bar>
+        {!fuelOnly && (
+          <Bar dataKey="otherCost" name="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]}>
+            <LabelList dataKey="_total" position="top" fill="#6B7280" fontSize={10} formatter={(v: number) => v > 0 ? v.toFixed(0) : ''} />
+          </Bar>
+        )}
       </BarChart>
     </ResponsiveContainer>
   )

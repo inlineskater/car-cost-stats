@@ -85,10 +85,10 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     }
     const costPerKmByCategory: Record<string, number> = {}
     if (totalKm > 0) {
-      costPerKmByCategory['lpg'] = +(lpgTotal / totalKm).toFixed(4)
-      costPerKmByCategory['petrol'] = +(petrolTotal / totalKm).toFixed(4)
+      costPerKmByCategory['lpg'] = +(lpgTotal / totalKm).toFixed(2)
+      costPerKmByCategory['petrol'] = +(petrolTotal / totalKm).toFixed(2)
       for (const [cat, total] of Object.entries(costByCategory)) {
-        costPerKmByCategory[cat] = +(total / totalKm).toFixed(4)
+        costPerKmByCategory[cat] = +(total / totalKm).toFixed(2)
       }
     }
 
@@ -164,45 +164,67 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       const thisMax = maxMileageByMonth.get(monthKey) ?? null
       const prevMax = maxMileageByMonth.get(prevMonthKey) ?? null
       const kmDriven = thisMax !== null && prevMax !== null && thisMax > prevMax ? thisMax - prevMax : null
-      const lpgCostPerKm = kmDriven ? +(lpgCost / kmDriven).toFixed(3) : null
-      const otherCostPerKm = kmDriven ? +(otherCost / kmDriven).toFixed(3) : null
+      const lpgCostPerKm = kmDriven ? +(lpgCost / kmDriven).toFixed(2) : null
+      const otherCostPerKm = kmDriven ? +(otherCost / kmDriven).toFixed(2) : null
 
       monthlyBreakdown.push({
         month: monthKey, label: monthLabel,
         lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost,
         kmDriven, lpgCostPerKm, petrolCostPerKm: null, otherCostPerKm,
-        insuranceCostPerKm: kmDriven ? +(insuranceCost / kmDriven).toFixed(3) : null,
-        inspectionCostPerKm: kmDriven ? +(inspectionCost / kmDriven).toFixed(3) : null,
-        serviceCostPerKm: kmDriven ? +(serviceCost / kmDriven).toFixed(3) : null,
-        repairCostPerKm: kmDriven ? +(repairCost / kmDriven).toFixed(3) : null,
-        otherCatCostPerKm: kmDriven ? +(otherCatCost / kmDriven).toFixed(3) : null,
+        insuranceCostPerKm: kmDriven ? +(insuranceCost / kmDriven).toFixed(2) : null,
+        inspectionCostPerKm: kmDriven ? +(inspectionCost / kmDriven).toFixed(2) : null,
+        serviceCostPerKm: kmDriven ? +(serviceCost / kmDriven).toFixed(2) : null,
+        repairCostPerKm: kmDriven ? +(repairCost / kmDriven).toFixed(2) : null,
+        otherCatCostPerKm: kmDriven ? +(otherCatCost / kmDriven).toFixed(2) : null,
       })
     }
 
     // Spread petrol cost/km evenly: total petrol cost ÷ total km across all months
     const totalPetrolInBreakdown = monthlyBreakdown.reduce((s, m) => s + m.petrolCost, 0)
     const totalKmInBreakdown = monthlyBreakdown.reduce((s, m) => s + (m.kmDriven ?? 0), 0)
-    const spreadPetrolPerKm = totalKmInBreakdown > 0 ? +(totalPetrolInBreakdown / totalKmInBreakdown).toFixed(3) : null
+    const spreadPetrolPerKm = totalKmInBreakdown > 0 ? +(totalPetrolInBreakdown / totalKmInBreakdown).toFixed(2) : null
     for (const m of monthlyBreakdown) {
       if (m.kmDriven) m.petrolCostPerKm = spreadPetrolPerKm
     }
 
-    // Amortized breakdown: spread all other costs evenly across 12 months
-    const totalOtherIn12 = monthlyBreakdown.reduce((s, m) => s + m.otherCost, 0)
-    const amortizedOtherPerMonth = totalOtherIn12 / 12
-    // Per-category amortized
+    // Amortized breakdown: spread ALL-TIME other costs over months since first fuel entry
+    const earliestFuelDate = fuel.length ? fuel.reduce((min, e) => e.date < min ? e.date : min, fuel[0].date) : null
+    const monthsSinceStart = earliestFuelDate
+      ? Math.max(1, (now.getFullYear() - parseInt(earliestFuelDate.slice(0, 4))) * 12 + (now.getMonth() + 1 - parseInt(earliestFuelDate.slice(5, 7))))
+      : 12
+    // Per-category amortized (all-time)
     const catTotals: Record<string, number> = {}
-    for (const m of monthlyBreakdown) {
-      const monthCosts = costs.filter((e) => e.date.startsWith(m.month))
-      for (const c of monthCosts) {
-        catTotals[c.category] = (catTotals[c.category] ?? 0) + Number(c.cost)
-      }
+    for (const c of costs) {
+      catTotals[c.category] = (catTotals[c.category] ?? 0) + Number(c.cost)
     }
-    const amortInsurance = (catTotals['insurance'] ?? 0) / 12
-    const amortInspection = (catTotals['inspection'] ?? 0) / 12
-    const amortService = ((catTotals['service'] ?? 0) + (catTotals['repair'] ?? 0)) / 12
+    const amortInsurance = (() => {
+      const entries = costs.filter((c) => c.category === 'insurance')
+      if (!entries.length) return 0
+      let total = 0
+      for (const c of entries) {
+        const months = c.next_due_date
+          ? Math.max(1, Math.round(differenceInDays(parseISO(c.next_due_date), parseISO(c.date)) / 30.44))
+          : 12
+        total += Number(c.cost) / months
+      }
+      return total
+    })()
+    const amortInspection = (() => {
+      const entries = costs.filter((c) => c.category === 'inspection')
+      if (!entries.length) return 0
+      let total = 0
+      for (const c of entries) {
+        const months = c.next_due_date
+          ? Math.max(1, Math.round(differenceInDays(parseISO(c.next_due_date), parseISO(c.date)) / 30.44))
+          : 12
+        total += Number(c.cost) / months
+      }
+      return total
+    })()
+    const amortService = ((catTotals['service'] ?? 0) + (catTotals['repair'] ?? 0)) / monthsSinceStart
     const amortRepair = 0
-    const amortOtherCat = ((catTotals['other'] ?? 0) + (catTotals['tax'] ?? 0)) / 12
+    const amortOtherCat = ((catTotals['other'] ?? 0) + (catTotals['tax'] ?? 0)) / monthsSinceStart
+    const amortizedOtherPerMonth = amortInsurance + amortInspection + amortService + amortOtherCat
 
     const monthlyBreakdownAmortized: MonthlyBreakdown[] = monthlyBreakdown.map((m) => {
       const total = m.lpgCost + m.petrolCost + amortizedOtherPerMonth
@@ -211,12 +233,12 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         ...m,
         otherCost: +amortizedOtherPerMonth.toFixed(2),
         total: +total.toFixed(2),
-        otherCostPerKm: kmDriven ? +(amortizedOtherPerMonth / kmDriven).toFixed(3) : null,
-        insuranceCostPerKm: kmDriven ? +(amortInsurance / kmDriven).toFixed(3) : null,
-        inspectionCostPerKm: kmDriven ? +(amortInspection / kmDriven).toFixed(3) : null,
-        serviceCostPerKm: kmDriven ? +(amortService / kmDriven).toFixed(3) : null,
-        repairCostPerKm: kmDriven ? +(amortRepair / kmDriven).toFixed(3) : null,
-        otherCatCostPerKm: kmDriven ? +(amortOtherCat / kmDriven).toFixed(3) : null,
+        otherCostPerKm: kmDriven ? +(amortizedOtherPerMonth / kmDriven).toFixed(2) : null,
+        insuranceCostPerKm: kmDriven ? +(amortInsurance / kmDriven).toFixed(2) : null,
+        inspectionCostPerKm: kmDriven ? +(amortInspection / kmDriven).toFixed(2) : null,
+        serviceCostPerKm: kmDriven ? +(amortService / kmDriven).toFixed(2) : null,
+        repairCostPerKm: kmDriven ? +(amortRepair / kmDriven).toFixed(2) : null,
+        otherCatCostPerKm: kmDriven ? +(amortOtherCat / kmDriven).toFixed(2) : null,
       }
     })
 
@@ -248,9 +270,9 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       totalKm,
       costPerKm,
       costPerKmByCategory,
-      lpgCostPerKm: lpgCostPerKm !== null ? +lpgCostPerKm.toFixed(3) : null,
-      petrolCostPerKm: petrolCostPerKm !== null ? +petrolCostPerKm.toFixed(3) : null,
-      otherCostPerKm: otherCostPerKm !== null ? +otherCostPerKm.toFixed(3) : null,
+      lpgCostPerKm: lpgCostPerKm !== null ? +lpgCostPerKm.toFixed(2) : null,
+      petrolCostPerKm: petrolCostPerKm !== null ? +petrolCostPerKm.toFixed(2) : null,
+      otherCostPerKm: otherCostPerKm !== null ? +otherCostPerKm.toFixed(2) : null,
       avgConsumptionLpg: avgConsumptionLpg !== null ? +avgConsumptionLpg.toFixed(2) : null,
       avgConsumptionPetrol: avgConsumptionPetrol !== null ? +avgConsumptionPetrol.toFixed(2) : null,
       monthlyBreakdown,
