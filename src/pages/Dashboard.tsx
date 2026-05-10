@@ -60,22 +60,39 @@ export default function Dashboard() {
                 delta={stats.momCostDelta}
               />
               <StatCard
-                label="LPG / km"
-                value={stats.lpgCostPerKm !== null ? `${stats.lpgCostPerKm.toFixed(2)} zł` : '—'}
-                sub="fuel only"
+                label="Fuel / km"
+                value={stats.costPerKm !== null && stats.lpgCostPerKm !== null
+                  ? `${(stats.lpgCostPerKm + (stats.petrolCostPerKm ?? 0)).toFixed(2)} zł`
+                  : '—'}
+                sub={[
+                  stats.lpgCostPerKm !== null ? `LPG ${stats.lpgCostPerKm.toFixed(2)}` : null,
+                  stats.petrolCostPerKm !== null ? `Petrol ${stats.petrolCostPerKm.toFixed(2)}` : null,
+                ].filter(Boolean).join(' · ')}
               />
-              <StatCard
-                label="Total / km"
-                value={stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)} zł` : '—'}
-                sub={Object.keys(stats.costPerKmByCategory).length > 0
-                  ? Object.entries(stats.costPerKmByCategory)
+              {stats.costPerKm !== null && (
+                <div className="col-span-2 bg-white rounded-2xl p-4 shadow-sm">
+                  <p className="text-xs text-gray-400 uppercase tracking-wide mb-1">Total / km</p>
+                  <p className="text-2xl font-bold text-gray-900">{stats.costPerKm.toFixed(2)} zł</p>
+                  <div className="mt-2 space-y-1">
+                    {Object.entries(stats.costPerKmByCategory)
                       .filter(([, v]) => v > 0.001)
                       .sort((a, b) => b[1] - a[1])
-                      .slice(0, 4)
-                      .map(([k, v]) => `${k} ${v.toFixed(2)}`)
-                      .join(' + ')
-                  : undefined}
-              />
+                      .map(([cat, val]) => {
+                        const pct = stats.costPerKm! > 0 ? (val / stats.costPerKm!) * 100 : 0
+                        return (
+                          <div key={cat} className="flex items-center gap-2 text-xs">
+                            <span className="w-16 text-gray-500 capitalize">{cat}</span>
+                            <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                              <div className="h-full bg-blue-400 rounded-full" style={{ width: `${pct}%` }} />
+                            </div>
+                            <span className="text-gray-600 w-14 text-right">{val.toFixed(2)} zł</span>
+                            <span className="text-gray-400 w-10 text-right">{pct.toFixed(0)}%</span>
+                          </div>
+                        )
+                      })}
+                  </div>
+                </div>
+              )}
               {stats.avgConsumptionLpg !== null && (
                 <StatCard
                   label="Avg LPG"
