@@ -18,11 +18,11 @@ export default function MonthlyBarChart({ data }: MonthlyBarChartProps) {
           contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 12 }}
           labelStyle={{ color: '#111827', fontWeight: 600 }}
           itemStyle={{ color: '#6B7280' }}
-          formatter={(v: number) => v.toFixed(2)}
+          formatter={(v: number) => `${v.toFixed(0)} zł`}
         />
-        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 12 }} />
-        <Bar dataKey="lpgCost" name="LPG" stackId="a" fill="#22c55e" radius={[0, 0, 0, 0]} />
-        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill="#3b82f6" radius={[0, 0, 0, 0]} />
+        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 11 }} />
+        <Bar dataKey="lpgCost" name="LPG" stackId="a" fill="#22c55e" />
+        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill="#3b82f6" />
         <Bar dataKey="otherCost" name="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

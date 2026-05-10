@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Fuel, Plus } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
@@ -19,6 +20,7 @@ import { formatCurrency, formatKm } from '@/lib/utils'
 
 export default function Dashboard() {
   const navigate = useNavigate()
+  const [amortized, setAmortized] = useState(false)
   const { data: stats, isLoading } = useStats()
   const upcoming = useUpcomingCosts()
   const { data: fuelEntries = [] } = useAllFuelEntries()
@@ -144,8 +146,16 @@ export default function Dashboard() {
             )}
 
             <Card>
-              <h3 className="text-sm font-semibold text-gray-500 mb-3">Monthly costs</h3>
-              <MonthlyBarChart data={stats.monthlyBreakdown} />
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-500">Monthly costs</h3>
+                <button
+                  onClick={() => setAmortized(!amortized)}
+                  className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  {amortized ? 'Amortized' : 'Normal'}
+                </button>
+              </div>
+              <MonthlyBarChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} />
             </Card>
 
             {stats.consumptionHistory.length > 0 && (
@@ -160,8 +170,16 @@ export default function Dashboard() {
             )}
 
             <Card>
-              <h3 className="text-sm font-semibold text-gray-500 mb-3">Cost per km by month (zł/km)</h3>
-              <CostPerKmChart data={stats.monthlyBreakdown} />
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-500">Cost per km by month (zł/km)</h3>
+                <button
+                  onClick={() => setAmortized(!amortized)}
+                  className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 transition-colors"
+                >
+                  {amortized ? 'Amortized' : 'Normal'}
+                </button>
+              </div>
+              <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} />
             </Card>
 
             <Card>

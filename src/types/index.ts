@@ -55,6 +55,7 @@ export interface StatsData {
   avgConsumptionLpg: number | null
   avgConsumptionPetrol: number | null
   monthlyBreakdown: MonthlyBreakdown[]
+  monthlyBreakdownAmortized: MonthlyBreakdown[]
   consumptionHistory: ConsumptionPoint[]
   lpgShare: number    // 0-100 percent
   petrolShare: number

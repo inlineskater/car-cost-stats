@@ -186,6 +186,39 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       if (m.kmDriven) m.petrolCostPerKm = spreadPetrolPerKm
     }
 
+    // Amortized breakdown: spread all other costs evenly across 12 months
+    const totalOtherIn12 = monthlyBreakdown.reduce((s, m) => s + m.otherCost, 0)
+    const amortizedOtherPerMonth = totalOtherIn12 / 12
+    // Per-category amortized
+    const catTotals: Record<string, number> = {}
+    for (const m of monthlyBreakdown) {
+      const monthCosts = costs.filter((e) => e.date.startsWith(m.month))
+      for (const c of monthCosts) {
+        catTotals[c.category] = (catTotals[c.category] ?? 0) + Number(c.cost)
+      }
+    }
+    const amortInsurance = (catTotals['insurance'] ?? 0) / 12
+    const amortInspection = (catTotals['inspection'] ?? 0) / 12
+    const amortService = (catTotals['service'] ?? 0) / 12
+    const amortRepair = (catTotals['repair'] ?? 0) / 12
+    const amortOtherCat = ((catTotals['other'] ?? 0) + (catTotals['tax'] ?? 0)) / 12
+
+    const monthlyBreakdownAmortized: MonthlyBreakdown[] = monthlyBreakdown.map((m) => {
+      const total = m.lpgCost + m.petrolCost + amortizedOtherPerMonth
+      const kmDriven = m.kmDriven
+      return {
+        ...m,
+        otherCost: +amortizedOtherPerMonth.toFixed(2),
+        total: +total.toFixed(2),
+        otherCostPerKm: kmDriven ? +(amortizedOtherPerMonth / kmDriven).toFixed(3) : null,
+        insuranceCostPerKm: kmDriven ? +(amortInsurance / kmDriven).toFixed(3) : null,
+        inspectionCostPerKm: kmDriven ? +(amortInspection / kmDriven).toFixed(3) : null,
+        serviceCostPerKm: kmDriven ? +(amortService / kmDriven).toFixed(3) : null,
+        repairCostPerKm: kmDriven ? +(amortRepair / kmDriven).toFixed(3) : null,
+        otherCatCostPerKm: kmDriven ? +(amortOtherCat / kmDriven).toFixed(3) : null,
+      }
+    })
+
     // month-over-month deltas — compare two most-recent months that have any cost
     const monthsWithData = monthlyBreakdown.filter((m) => m.total > 0)
     let momCostDelta: number | null = null
@@ -220,6 +253,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       avgConsumptionLpg: avgConsumptionLpg !== null ? +avgConsumptionLpg.toFixed(2) : null,
       avgConsumptionPetrol: avgConsumptionPetrol !== null ? +avgConsumptionPetrol.toFixed(2) : null,
       monthlyBreakdown,
+      monthlyBreakdownAmortized,
       consumptionHistory: monthlyConsumption,
       lpgShare: +lpgShare.toFixed(1),
       petrolShare: +petrolShare.toFixed(1),
