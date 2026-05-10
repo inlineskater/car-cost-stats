@@ -50,7 +50,21 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     // Petrol on dual-fuel: genuinely low contribution (0.05–5 L/100km across all km driven)
     calcFillToFill(petrolEntries, 15000, 0.05, 5)
 
-    consumptionHistory.sort((a, b) => a.date.localeCompare(b.date))
+    // Average fill-to-fill readings per month so the chart shows one smooth
+    // data point per month instead of noisy per-fill-up spikes
+    const byMonth = new Map<string, { lpgSum: number; lpgCount: number; petrolSum: number; petrolCount: number }>()
+    for (const p of consumptionHistory) {
+      const month = p.date.substring(0, 7)
+      const e = byMonth.get(month) ?? { lpgSum: 0, lpgCount: 0, petrolSum: 0, petrolCount: 0 }
+      if (p.fuelType === 'lpg') { e.lpgSum += p.lPer100km; e.lpgCount++ }
+      else { e.petrolSum += p.lPer100km; e.petrolCount++ }
+      byMonth.set(month, e)
+    }
+    const monthlyConsumption: ConsumptionPoint[] = []
+    for (const [month, d] of [...byMonth.entries()].sort()) {
+      if (d.lpgCount > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'lpg', lPer100km: +(d.lpgSum / d.lpgCount).toFixed(2) })
+      if (d.petrolCount > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'petrol', lPer100km: +(d.petrolSum / d.petrolCount).toFixed(2) })
+    }
 
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
     const avgConsumptionLpg = avg(lpgConsumptions)
@@ -109,7 +123,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       avgConsumptionLpg: avgConsumptionLpg !== null ? +avgConsumptionLpg.toFixed(2) : null,
       avgConsumptionPetrol: avgConsumptionPetrol !== null ? +avgConsumptionPetrol.toFixed(2) : null,
       monthlyBreakdown,
-      consumptionHistory,
+      consumptionHistory: monthlyConsumption,
       lpgShare: +lpgShare.toFixed(1),
       petrolShare: +petrolShare.toFixed(1),
       totalLitersLpg: +totalLitersLpg.toFixed(1),

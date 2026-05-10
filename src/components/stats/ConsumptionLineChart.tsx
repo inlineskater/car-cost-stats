@@ -1,8 +1,8 @@
 import {
   LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
+import { format, parseISO } from 'date-fns'
 import type { ConsumptionPoint } from '@/types'
-import { formatDate } from '@/lib/utils'
 
 interface ConsumptionLineChartProps {
   data: ConsumptionPoint[]
@@ -17,12 +17,11 @@ export default function ConsumptionLineChart({ data, fuelType, avg }: Consumptio
   const filtered = data.filter((p) => p.fuelType === fuelType)
 
   if (filtered.length < 2) {
-    return <p className="text-center text-slate-500 text-sm py-6">Need at least 2 {LABEL[fuelType]} fill-ups</p>
+    return <p className="text-center text-gray-400 text-sm py-6">Need at least 2 months of {LABEL[fuelType]} data</p>
   }
 
   const color = COLOR[fuelType]
-  const chartData = filtered.map((p) => ({ date: formatDate(p.date), value: p.lPer100km }))
-  const isPetrol = fuelType === 'petrol'
+  const chartData = filtered.map((p) => ({ date: format(parseISO(p.date), 'MMM yy'), value: p.lPer100km }))
 
   return (
     <>
@@ -40,9 +39,8 @@ export default function ConsumptionLineChart({ data, fuelType, avg }: Consumptio
             dataKey="value"
             stroke={color}
             strokeWidth={2}
-            dot={isPetrol ? { r: 4, fill: color, strokeWidth: 0 } : false}
+            dot={{ r: 4, fill: color, strokeWidth: 0 }}
             activeDot={{ r: 6 }}
-            connectNulls
           />
         </LineChart>
       </ResponsiveContainer>
