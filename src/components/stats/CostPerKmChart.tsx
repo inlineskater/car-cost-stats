@@ -14,7 +14,7 @@ export default function CostPerKmChart({ data, fuelOnly }: Props) {
     .map((m) => {
       const lpg = m.lpgCostPerKm ?? 0
       const petrol = m.petrolCostPerKm ?? 0
-      const service = (m.serviceCostPerKm ?? 0) + (m.repairCostPerKm ?? 0)
+      const service = m.serviceCostPerKm ?? 0
       const insurance = m.insuranceCostPerKm ?? 0
       const inspection = m.inspectionCostPerKm ?? 0
       const other = m.otherCatCostPerKm ?? 0

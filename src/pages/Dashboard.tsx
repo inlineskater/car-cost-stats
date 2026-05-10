@@ -22,6 +22,7 @@ export default function Dashboard() {
   const navigate = useNavigate()
   const [amortized, setAmortized] = useState(true)
   const [fuelOnly, setFuelOnly] = useState(false)
+  const [fuelOnlyKm, setFuelOnlyKm] = useState(false)
   const { data: stats, isLoading } = useStats()
   const upcoming = useUpcomingCosts()
   const { data: fuelEntries = [] } = useAllFuelEntries()
@@ -200,10 +201,10 @@ export default function Dashboard() {
                 <h3 className="text-sm font-semibold text-gray-500">Cost per km (zł/km)</h3>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => setFuelOnly(!fuelOnly)}
-                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${fuelOnly ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                    onClick={() => setFuelOnlyKm(!fuelOnlyKm)}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${fuelOnlyKm ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
                   >
-                    {fuelOnly ? 'Fuel only' : 'All costs'}
+                    {fuelOnlyKm ? 'Fuel only' : 'All costs'}
                   </button>
                   <button
                     onClick={() => setAmortized(!amortized)}
@@ -213,7 +214,7 @@ export default function Dashboard() {
                   </button>
                 </div>
               </div>
-              <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} fuelOnly={fuelOnly} />
+              <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} fuelOnly={fuelOnlyKm} />
             </Card>
 
             <Card>

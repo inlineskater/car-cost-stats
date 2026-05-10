@@ -8,20 +8,20 @@ export default function PriceTrendChart() {
 
   const chartData = useMemo(() => {
     if (!fuel) return []
-    const byMonth = new Map<string, { lpgSum: number; lpgCount: number; petrolSum: number; petrolCount: number }>()
+    const byMonth = new Map<string, { lpgCostSum: number; lpgLiters: number; petrolCostSum: number; petrolLiters: number }>()
     for (const e of fuel) {
       const month = e.date.substring(0, 7)
-      const entry = byMonth.get(month) ?? { lpgSum: 0, lpgCount: 0, petrolSum: 0, petrolCount: 0 }
-      if (e.fuel_type === 'lpg') { entry.lpgSum += Number(e.price_per_liter); entry.lpgCount++ }
-      else { entry.petrolSum += Number(e.price_per_liter); entry.petrolCount++ }
+      const entry = byMonth.get(month) ?? { lpgCostSum: 0, lpgLiters: 0, petrolCostSum: 0, petrolLiters: 0 }
+      if (e.fuel_type === 'lpg') { entry.lpgCostSum += Number(e.price_per_liter) * Number(e.liters); entry.lpgLiters += Number(e.liters) }
+      else { entry.petrolCostSum += Number(e.price_per_liter) * Number(e.liters); entry.petrolLiters += Number(e.liters) }
       byMonth.set(month, entry)
     }
     return [...byMonth.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, d]) => ({
         date: format(parseISO(`${month}-01`), 'MMM'),
-        LPG: d.lpgCount > 0 ? +(d.lpgSum / d.lpgCount).toFixed(4) : null,
-        Petrol: d.petrolCount > 0 ? +(d.petrolSum / d.petrolCount).toFixed(4) : null,
+        LPG: d.lpgLiters > 0 ? +(d.lpgCostSum / d.lpgLiters).toFixed(4) : null,
+        Petrol: d.petrolLiters > 0 ? +(d.petrolCostSum / d.petrolLiters).toFixed(4) : null,
       }))
   }, [fuel])
 
