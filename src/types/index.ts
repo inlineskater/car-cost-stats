@@ -24,6 +24,10 @@ export interface MonthlyBreakdown {
   petrolCost: number
   otherCost: number
   total: number
+  kmDriven: number | null
+  lpgCostPerKm: number | null
+  petrolCostPerKm: number | null
+  otherCostPerKm: number | null
 }
 
 export interface ConsumptionPoint {

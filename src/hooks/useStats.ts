@@ -113,6 +113,13 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       }
     }
 
+    // max odometer reading per calendar month — used to derive km driven per month
+    const maxMileageByMonth = new Map<string, number>()
+    for (const e of fuel) {
+      const m = e.date.substring(0, 7)
+      maxMileageByMonth.set(m, Math.max(maxMileageByMonth.get(m) ?? 0, e.mileage))
+    }
+
     // monthly breakdown last 12 months
     const monthlyBreakdown: MonthlyBreakdown[] = []
     const now = new Date()
@@ -120,6 +127,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       const d = startOfMonth(subMonths(now, i))
       const monthKey = format(d, 'yyyy-MM')
       const monthLabel = format(d, 'MMM yy')
+      const prevMonthKey = format(subMonths(d, 1), 'yyyy-MM')
 
       const lpgCost = fuel
         .filter((e) => e.fuel_type === 'lpg' && e.date.startsWith(monthKey))
@@ -131,7 +139,18 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         .filter((e) => e.date.startsWith(monthKey))
         .reduce((s, e) => s + Number(e.cost), 0)
 
-      monthlyBreakdown.push({ month: monthKey, label: monthLabel, lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost })
+      const thisMax = maxMileageByMonth.get(monthKey) ?? null
+      const prevMax = maxMileageByMonth.get(prevMonthKey) ?? null
+      const kmDriven = thisMax !== null && prevMax !== null && thisMax > prevMax ? thisMax - prevMax : null
+      const lpgCostPerKm = kmDriven ? +(lpgCost / kmDriven).toFixed(3) : null
+      const petrolCostPerKm = kmDriven ? +(petrolCost / kmDriven).toFixed(3) : null
+      const otherCostPerKm = kmDriven ? +(otherCost / kmDriven).toFixed(3) : null
+
+      monthlyBreakdown.push({
+        month: monthKey, label: monthLabel,
+        lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost,
+        kmDriven, lpgCostPerKm, petrolCostPerKm, otherCostPerKm,
+      })
     }
 
     // month-over-month deltas — compare two most-recent months that have any cost

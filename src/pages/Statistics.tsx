@@ -3,6 +3,7 @@ import StatCard from '@/components/stats/StatCard'
 import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import FuelTypeDonut from '@/components/stats/FuelTypeDonut'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
+import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import PriceTrendChart from '@/components/stats/PriceTrendChart'
 import Spinner from '@/components/ui/Spinner'
 import Card from '@/components/ui/Card'
@@ -86,27 +87,21 @@ export default function Statistics() {
           <MonthlyBarChart data={stats.monthlyBreakdown} />
         </Card>
 
-        {stats.totalLitersLpg > 0 && (
+        {stats.consumptionHistory.length > 0 && (
           <Card>
-            <h3 className="text-sm font-semibold text-green-400 mb-3">LPG consumption (L/100km)</h3>
+            <h3 className="text-sm font-semibold text-gray-500 mb-3">Avg consumption (L/100km)</h3>
             <ConsumptionLineChart
               data={stats.consumptionHistory}
-              fuelType="lpg"
-              avg={stats.avgConsumptionLpg}
+              avgLpg={stats.avgConsumptionLpg}
+              avgPetrol={stats.avgConsumptionPetrol}
             />
           </Card>
         )}
 
-        {stats.totalLitersPetrol > 0 && (
-          <Card>
-            <h3 className="text-sm font-semibold text-blue-400 mb-3">Petrol contribution (L/100km)</h3>
-            <ConsumptionLineChart
-              data={stats.consumptionHistory}
-              fuelType="petrol"
-              avg={stats.avgConsumptionPetrol}
-            />
-          </Card>
-        )}
+        <Card>
+          <h3 className="text-sm font-semibold text-gray-500 mb-3">Cost per km by month (zł/km)</h3>
+          <CostPerKmChart data={stats.monthlyBreakdown} />
+        </Card>
 
         <Card>
           <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel type split</h3>
@@ -132,13 +127,6 @@ export default function Statistics() {
                 label="LPG range"
                 value={formatKm(stats.avgKmBetweenLpgFills)}
                 sub="avg km per tank"
-              />
-            )}
-            {stats.maxKmOnOneLpgTank !== null && (
-              <StatCard
-                label="Best LPG tank"
-                value={formatKm(stats.maxKmOnOneLpgTank)}
-                sub="max km on one fill"
               />
             )}
           </div>
