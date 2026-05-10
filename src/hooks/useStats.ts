@@ -36,7 +36,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         const curr = entries[i]
         const dist = curr.mileage - prev.mileage
         if (dist <= 0 || dist > maxDist) continue
-        const lPer100 = (Number(prev.liters) / dist) * 100
+        const lPer100 = (Number(curr.liters) / dist) * 100
         consumptionHistory.push({ date: curr.date, fuelType: curr.fuel_type, lPer100km: +lPer100.toFixed(2) })
         if (curr.fuel_type === 'lpg') lpgConsumptions.push(lPer100)
         else petrolConsumptions.push(lPer100)

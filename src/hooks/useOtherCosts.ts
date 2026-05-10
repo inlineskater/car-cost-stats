@@ -16,7 +16,8 @@ export function useOtherCosts(month?: string | null) {
       if (month) {
         const [y, m] = month.split('-')
         const start = `${y}-${m}-01`
-        const end = new Date(Number(y), Number(m), 0).toISOString().slice(0, 10)
+        const lastDay = new Date(Number(y), Number(m), 0).getDate()
+        const end = `${y}-${m}-${String(lastDay).padStart(2, '0')}`
         q = q.gte('date', start).lte('date', end)
       }
 

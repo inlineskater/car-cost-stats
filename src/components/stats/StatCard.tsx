@@ -25,7 +25,7 @@ export default function StatCard({ label, value, sub, icon, delta, higherIsBette
       {(sub || (delta != null)) && (
         <div className="flex items-center justify-between gap-1">
           {sub && <p className="text-xs text-gray-400">{sub}</p>}
-          {delta != null && (
+          {delta != null && delta !== 0 && (
             <p className={`text-xs font-semibold ml-auto ${isGood ? 'text-green-500' : 'text-red-500'}`}>
               {delta > 0 ? '↑' : '↓'} {Math.abs(delta)}%
             </p>
