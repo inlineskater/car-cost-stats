@@ -15,6 +15,7 @@ const FUEL_TABS: { value: HistoryFilters['fuelType']; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'lpg', label: 'LPG' },
   { value: 'petrol', label: 'Petrol' },
+  { value: 'service', label: 'Service' },
   { value: 'other', label: 'Other' },
 ]
 
@@ -35,8 +36,8 @@ export default function History() {
   const { historyFilters, setHistoryFilters } = useAppStore()
   const addToast = useAppStore((s) => s.addToast)
 
-  const showFuel = historyFilters.fuelType !== 'other'
-  const showOther = historyFilters.fuelType === 'all' || historyFilters.fuelType === 'other'
+  const showFuel = historyFilters.fuelType !== 'other' && historyFilters.fuelType !== 'service'
+  const showOther = historyFilters.fuelType === 'all' || historyFilters.fuelType === 'other' || historyFilters.fuelType === 'service'
 
   const fuelTypeFilter = historyFilters.fuelType === 'other' ? 'all' : (historyFilters.fuelType as FuelType | 'all')
   const { data: fuelEntries = [], isLoading: fl } = useFuelEntries(
@@ -59,9 +60,13 @@ export default function History() {
     addToast('Cost deleted.', 'success')
   }
 
+  const filteredOtherCosts = historyFilters.fuelType === 'service'
+    ? otherCosts.filter((c) => c.category === 'service' || c.category === 'repair')
+    : otherCosts
+
   const rows: Row[] = [
     ...(showFuel ? fuelEntries.map((e) => ({ type: 'fuel' as const, date: e.date, id: e.id, data: e })) : []),
-    ...(showOther ? otherCosts.map((c) => ({ type: 'cost' as const, date: c.date, id: c.id, data: c })) : []),
+    ...(showOther ? filteredOtherCosts.map((c) => ({ type: 'cost' as const, date: c.date, id: c.id, data: c })) : []),
   ].sort((a, b) => b.date.localeCompare(a.date))
 
   const months = monthOptions()

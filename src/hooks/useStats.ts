@@ -179,16 +179,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       })
     }
 
-    // Amortized breakdown: spread ALL-TIME other costs over months since first fuel entry
-    const earliestFuelDate = fuel.length ? fuel.reduce((min, e) => e.date < min ? e.date : min, fuel[0].date) : null
-    const monthsSinceStart = earliestFuelDate
-      ? Math.max(1, (now.getFullYear() - parseInt(earliestFuelDate.slice(0, 4))) * 12 + (now.getMonth() + 1 - parseInt(earliestFuelDate.slice(5, 7))))
-      : 12
-    // Per-category amortized (all-time)
-    const catTotals: Record<string, number> = {}
-    for (const c of costs) {
-      catTotals[c.category] = (catTotals[c.category] ?? 0) + Number(c.cost)
-    }
+    // Amortized breakdown: data-driven per-category monthly cost
     const amortInsurance = (() => {
       const entries = costs.filter((c) => c.category === 'insurance')
       if (!entries.length) return 0
@@ -213,8 +204,16 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       }
       return total
     })()
-    const amortService = ((catTotals['service'] ?? 0) + (catTotals['repair'] ?? 0)) / monthsSinceStart
-    const amortOtherCat = ((catTotals['other'] ?? 0) + (catTotals['tax'] ?? 0)) / monthsSinceStart
+    const amortFromSpan = (categories: string[]) => {
+      const entries = costs.filter((c) => categories.includes(c.category))
+      if (!entries.length) return 0
+      const total = entries.reduce((s, e) => s + Number(e.cost), 0)
+      const earliest = entries.reduce((min, e) => e.date < min ? e.date : min, entries[0].date)
+      const months = Math.max(12, differenceInDays(now, parseISO(earliest)) / 30.44)
+      return total / months
+    }
+    const amortService = amortFromSpan(['service', 'repair'])
+    const amortOtherCat = amortFromSpan(['other', 'tax'])
     const amortizedOtherPerMonth = amortInsurance + amortInspection + amortService + amortOtherCat
 
     const monthlyBreakdownAmortized: MonthlyBreakdown[] = monthlyBreakdown.map((m) => {

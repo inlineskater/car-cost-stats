@@ -77,6 +77,6 @@ export interface StatsData {
 }
 
 export interface HistoryFilters {
-  fuelType: 'all' | 'lpg' | 'petrol' | 'other'
+  fuelType: 'all' | 'lpg' | 'petrol' | 'service' | 'other'
   month: string | null   // 'YYYY-MM' or null for all
 }
