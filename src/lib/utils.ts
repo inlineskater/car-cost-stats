@@ -11,6 +11,7 @@ export function formatCurrency(amount: number, currency = 'PLN'): string {
     style: 'currency',
     currency,
     minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   }).format(amount)
 }
 

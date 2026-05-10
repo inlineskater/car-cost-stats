@@ -1,14 +1,14 @@
 import { format, subMonths } from 'date-fns'
-import { Download } from 'lucide-react'
+import { Download, Trash2 } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
-import FuelEntryCard from '@/components/fuel/FuelEntryCard'
-import OtherCostCard from '@/components/costs/OtherCostCard'
 import Spinner from '@/components/ui/Spinner'
+import Badge from '@/components/ui/Badge'
 import { useFuelEntries, useDeleteFuelEntry, useAllFuelEntries } from '@/hooks/useFuelEntries'
 import { useOtherCosts, useDeleteOtherCost, useAllOtherCosts } from '@/hooks/useOtherCosts'
 import { useAppStore } from '@/stores/appStore'
 import type { HistoryFilters, FuelType } from '@/types'
-import { cn } from '@/lib/utils'
+import type { FuelEntryRow, OtherCostRow } from '@/types/database'
+import { cn, formatCurrency, formatDate } from '@/lib/utils'
 import { exportCsv } from '@/lib/exportCsv'
 
 const FUEL_TABS: { value: HistoryFilters['fuelType']; label: string }[] = [
@@ -26,6 +26,10 @@ function monthOptions() {
   }
   return opts
 }
+
+type Row =
+  | { type: 'fuel'; date: string; id: string; data: FuelEntryRow }
+  | { type: 'cost'; date: string; id: string; data: OtherCostRow }
 
 export default function History() {
   const { historyFilters, setHistoryFilters } = useAppStore()
@@ -55,23 +59,9 @@ export default function History() {
     addToast('Cost deleted.', 'success')
   }
 
-  type CombinedItem =
-    | { type: 'fuel'; date: string; id: string; el: React.ReactNode }
-    | { type: 'cost'; date: string; id: string; el: React.ReactNode }
-
-  const items: CombinedItem[] = [
-    ...(showFuel ? fuelEntries.map((e) => ({
-      type: 'fuel' as const,
-      date: e.date,
-      id: e.id,
-      el: <FuelEntryCard key={e.id} entry={e} onDelete={handleDeleteFuel} />,
-    })) : []),
-    ...(showOther ? otherCosts.map((c) => ({
-      type: 'cost' as const,
-      date: c.date,
-      id: c.id,
-      el: <OtherCostCard key={c.id} cost={c} onDelete={handleDeleteCost} />,
-    })) : []),
+  const rows: Row[] = [
+    ...(showFuel ? fuelEntries.map((e) => ({ type: 'fuel' as const, date: e.date, id: e.id, data: e })) : []),
+    ...(showOther ? otherCosts.map((c) => ({ type: 'cost' as const, date: c.date, id: c.id, data: c })) : []),
   ].sort((a, b) => b.date.localeCompare(a.date))
 
   const months = monthOptions()
@@ -90,7 +80,6 @@ export default function History() {
         }
       />
 
-      {/* Filters */}
       <div className="sticky top-14 z-20 bg-[#F2F2F7] border-b border-gray-200 px-4 py-3 space-y-2">
         <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
           {FUEL_TABS.map((tab) => (
@@ -120,13 +109,57 @@ export default function History() {
         </select>
       </div>
 
-      <div className="p-4 space-y-3">
-        {(fl || cl) && items.length === 0 ? (
+      <div className="p-4">
+        {(fl || cl) && rows.length === 0 ? (
           <div className="flex justify-center py-12"><Spinner /></div>
-        ) : items.length === 0 ? (
+        ) : rows.length === 0 ? (
           <p className="text-center text-gray-400 py-12">No entries for this filter.</p>
         ) : (
-          items.map((item) => <div key={`${item.type}-${item.id}`}>{item.el}</div>)
+          <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b border-gray-100 text-left text-xs text-gray-400 uppercase">
+                  <th className="px-3 py-2">Date</th>
+                  <th className="px-3 py-2">Type</th>
+                  <th className="px-3 py-2">Details</th>
+                  <th className="px-3 py-2 text-right">Cost</th>
+                  <th className="px-3 py-2 w-8"></th>
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={`${row.type}-${row.id}`} className="border-b border-gray-50 last:border-0">
+                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{formatDate(row.date)}</td>
+                    <td className="px-3 py-2.5">
+                      {row.type === 'fuel' ? (
+                        <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
+                          {row.data.fuel_type.toUpperCase()}
+                        </Badge>
+                      ) : (
+                        <Badge variant="neutral" className="capitalize">{row.data.category}</Badge>
+                      )}
+                    </td>
+                    <td className="px-3 py-2.5 text-gray-700 truncate max-w-[140px]">
+                      {row.type === 'fuel'
+                        ? `${row.data.liters.toFixed(2)} L · ${row.data.mileage.toLocaleString()} km`
+                        : row.data.description}
+                    </td>
+                    <td className="px-3 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap">
+                      {formatCurrency(row.type === 'fuel' ? row.data.total_cost : row.data.cost)}
+                    </td>
+                    <td className="px-3 py-2.5">
+                      <button
+                        onClick={() => row.type === 'fuel' ? handleDeleteFuel(row.id) : handleDeleteCost(row.id)}
+                        className="text-gray-300 hover:text-red-500 transition-colors"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         )}
       </div>
     </div>

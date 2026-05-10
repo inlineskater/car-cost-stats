@@ -44,8 +44,8 @@ export function useAllFuelEntries() {
       const { data, error } = await supabase
         .from('fuel_entries')
         .select('*')
-        .order('date', { ascending: true })
-        .order('created_at', { ascending: true })
+        .order('date', { ascending: false })
+        .order('created_at', { ascending: false })
       if (error) throw error
       return data as FuelEntryRow[]
     },

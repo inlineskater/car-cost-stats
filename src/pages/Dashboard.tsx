@@ -2,9 +2,16 @@ import { useNavigate } from 'react-router-dom'
 import { Fuel, Plus } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import StatCard from '@/components/stats/StatCard'
+import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
+import FuelTypeDonut from '@/components/stats/FuelTypeDonut'
+import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
+import CostPerKmChart from '@/components/stats/CostPerKmChart'
+import KmPerMonthChart from '@/components/stats/KmPerMonthChart'
+import PriceTrendChart from '@/components/stats/PriceTrendChart'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
 import RecentEntriesList from '@/components/dashboard/RecentEntriesList'
 import Spinner from '@/components/ui/Spinner'
+import Card from '@/components/ui/Card'
 import { useStats, useUpcomingCosts } from '@/hooks/useStats'
 import { useAllFuelEntries } from '@/hooks/useFuelEntries'
 import { useAllOtherCosts } from '@/hooks/useOtherCosts'
@@ -45,9 +52,20 @@ export default function Dashboard() {
                 icon={<Fuel size={14} />}
               />
               <StatCard
-                label="Cost / km"
-                value={stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)} zł` : '—'}
-                sub="all costs included"
+                label="This month"
+                value={formatCurrency(stats.monthlyBreakdown[stats.monthlyBreakdown.length - 1]?.total ?? 0)}
+                sub="total cost"
+                delta={stats.momCostDelta}
+              />
+              <StatCard
+                label="LPG / km"
+                value={stats.lpgCostPerKm !== null ? `${stats.lpgCostPerKm.toFixed(2)} zł` : '—'}
+                sub="fuel only"
+              />
+              <StatCard
+                label="Petrol / km"
+                value={stats.petrolCostPerKm !== null ? `${stats.petrolCostPerKm.toFixed(2)} zł` : '—'}
+                sub="fuel only"
               />
               {stats.avgConsumptionLpg !== null && (
                 <StatCard
@@ -64,13 +82,95 @@ export default function Dashboard() {
                   sub="per 100 km"
                 />
               )}
-              <StatCard
-                label="This month"
-                value={formatCurrency(stats.monthlyBreakdown[stats.monthlyBreakdown.length - 1]?.total ?? 0)}
-                sub="total cost"
-                delta={stats.momCostDelta}
-              />
             </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <StatCard
+                label="Fuel cost"
+                value={formatCurrency(stats.totalFuelCost)}
+                sub={`Other: ${formatCurrency(stats.totalOtherCost)}`}
+              />
+              {stats.totalLitersLpg > 0 && (
+                <StatCard
+                  label="LPG total"
+                  value={`${stats.totalLitersLpg.toFixed(0)} L`}
+                  sub={stats.avgPricePerLiterLpg !== null
+                    ? `avg ${stats.avgPricePerLiterLpg.toFixed(3)} zł/L · ${stats.fillUpCountLpg} fill-ups`
+                    : `${stats.fillUpCountLpg} fill-ups`}
+                />
+              )}
+              {stats.totalLitersPetrol > 0 && (
+                <StatCard
+                  label="Petrol total"
+                  value={`${stats.totalLitersPetrol.toFixed(0)} L`}
+                  sub={stats.avgPricePerLiterPetrol !== null
+                    ? `avg ${stats.avgPricePerLiterPetrol.toFixed(3)} zł/L · ${stats.fillUpCountPetrol} fill-ups`
+                    : `${stats.fillUpCountPetrol} fill-ups`}
+                />
+              )}
+              {stats.lpgSavings !== null && stats.lpgSavings > 0 && (
+                <StatCard
+                  label="LPG savings"
+                  value={formatCurrency(stats.lpgSavings)}
+                  sub="vs petrol price"
+                />
+              )}
+            </div>
+
+            {(stats.avgDaysBetweenLpgFills !== null || stats.avgKmBetweenLpgFills !== null) && (
+              <div className="grid grid-cols-2 gap-3">
+                {stats.avgDaysBetweenLpgFills !== null && (
+                  <StatCard
+                    label="LPG interval"
+                    value={`${stats.avgDaysBetweenLpgFills}d`}
+                    sub="avg days between fills"
+                  />
+                )}
+                {stats.avgKmBetweenLpgFills !== null && (
+                  <StatCard
+                    label="LPG range"
+                    value={formatKm(stats.avgKmBetweenLpgFills)}
+                    sub="avg km per tank"
+                  />
+                )}
+              </div>
+            )}
+
+            <Card>
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">Monthly costs</h3>
+              <MonthlyBarChart data={stats.monthlyBreakdown} />
+            </Card>
+
+            {stats.consumptionHistory.length > 0 && (
+              <Card>
+                <h3 className="text-sm font-semibold text-gray-500 mb-3">Avg consumption (L/100km)</h3>
+                <ConsumptionLineChart
+                  data={stats.consumptionHistory}
+                  avgLpg={stats.avgConsumptionLpg}
+                  avgPetrol={stats.avgConsumptionPetrol}
+                />
+              </Card>
+            )}
+
+            <Card>
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">Cost per km by month (zł/km)</h3>
+              <CostPerKmChart data={stats.monthlyBreakdown} />
+            </Card>
+
+            <Card>
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">Km per month</h3>
+              <KmPerMonthChart data={stats.monthlyBreakdown} />
+            </Card>
+
+            <Card>
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel type split</h3>
+              <FuelTypeDonut lpgShare={stats.lpgShare} petrolShare={stats.petrolShare} />
+            </Card>
+
+            <Card>
+              <h3 className="text-sm font-semibold text-gray-500 mb-3">Fuel price trend (zł/L)</h3>
+              <PriceTrendChart />
+            </Card>
 
             <UpcomingCostsList costs={upcoming} />
             <RecentEntriesList fuelEntries={fuelEntries.slice(0, 5)} otherCosts={otherCosts.slice(0, 3)} />

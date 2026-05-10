@@ -9,7 +9,6 @@ import Dashboard from '@/pages/Dashboard'
 import AddFuel from '@/pages/AddFuel'
 import AddOtherCost from '@/pages/AddOtherCost'
 import History from '@/pages/History'
-import Statistics from '@/pages/Statistics'
 
 function ProtectedRoute({ session, children }: { session: Session | null; children: React.ReactNode }) {
   if (!session) return <Navigate to="/auth" replace />
@@ -60,7 +59,6 @@ export default function App() {
         <Route path="add-fuel" element={<AddFuel />} />
         <Route path="add-cost" element={<AddOtherCost />} />
         <Route path="history" element={<History />} />
-        <Route path="statistics" element={<Statistics />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

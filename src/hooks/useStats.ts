@@ -27,8 +27,8 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     const lpgConsumptions: number[] = []
     const petrolConsumptions: number[] = []
 
-    const lpgEntries = fuel.filter((e) => e.fuel_type === 'lpg')
-    const petrolEntries = fuel.filter((e) => e.fuel_type === 'petrol')
+    const lpgEntries = fuel.filter((e) => e.fuel_type === 'lpg').sort((a, b) => a.mileage - b.mileage)
+    const petrolEntries = fuel.filter((e) => e.fuel_type === 'petrol').sort((a, b) => a.mileage - b.mileage)
 
     const calcFillToFill = (entries: typeof fuel, maxDist: number) => {
       for (let i = 1; i < entries.length; i++) {
@@ -143,14 +143,21 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       const prevMax = maxMileageByMonth.get(prevMonthKey) ?? null
       const kmDriven = thisMax !== null && prevMax !== null && thisMax > prevMax ? thisMax - prevMax : null
       const lpgCostPerKm = kmDriven ? +(lpgCost / kmDriven).toFixed(3) : null
-      const petrolCostPerKm = kmDriven ? +(petrolCost / kmDriven).toFixed(3) : null
       const otherCostPerKm = kmDriven ? +(otherCost / kmDriven).toFixed(3) : null
 
       monthlyBreakdown.push({
         month: monthKey, label: monthLabel,
         lpgCost, petrolCost, otherCost, total: lpgCost + petrolCost + otherCost,
-        kmDriven, lpgCostPerKm, petrolCostPerKm, otherCostPerKm,
+        kmDriven, lpgCostPerKm, petrolCostPerKm: null, otherCostPerKm,
       })
+    }
+
+    // Spread petrol cost/km evenly: total petrol cost ÷ total km across all months
+    const totalPetrolInBreakdown = monthlyBreakdown.reduce((s, m) => s + m.petrolCost, 0)
+    const totalKmInBreakdown = monthlyBreakdown.reduce((s, m) => s + (m.kmDriven ?? 0), 0)
+    const spreadPetrolPerKm = totalKmInBreakdown > 0 ? +(totalPetrolInBreakdown / totalKmInBreakdown).toFixed(3) : null
+    for (const m of monthlyBreakdown) {
+      if (m.kmDriven) m.petrolCostPerKm = spreadPetrolPerKm
     }
 
     // month-over-month deltas — compare two most-recent months that have any cost

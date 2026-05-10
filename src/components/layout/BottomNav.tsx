@@ -1,12 +1,11 @@
 import { NavLink } from 'react-router-dom'
-import { LayoutDashboard, Fuel, List, BarChart2 } from 'lucide-react'
+import { LayoutDashboard, Fuel, List } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 const tabs = [
   { to: '/', icon: LayoutDashboard, label: 'Dashboard', exact: true },
   { to: '/add-fuel', icon: Fuel, label: 'Add Fuel', exact: false },
   { to: '/history', icon: List, label: 'History', exact: false },
-  { to: '/statistics', icon: BarChart2, label: 'Stats', exact: false },
 ]
 
 export default function BottomNav() {
