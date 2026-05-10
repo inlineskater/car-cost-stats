@@ -4,6 +4,7 @@ import { Plus } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import StatCard from '@/components/stats/StatCard'
 import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
+import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
 import RecentEntriesList from '@/components/dashboard/RecentEntriesList'
@@ -87,6 +88,20 @@ export default function Dashboard() {
                 />
               </Card>
             )}
+
+            {/* Cost per km chart */}
+            <Card>
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-semibold text-gray-500">Cost per km (zł/km)</h3>
+                <button
+                  onClick={() => setAmortized(!amortized)}
+                  className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                >
+                  {amortized ? 'Amortized' : 'Actual'}
+                </button>
+              </div>
+              <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} fuelOnly={false} />
+            </Card>
 
             {/* Upcoming costs */}
             <UpcomingCostsList costs={upcoming} />
