@@ -126,7 +126,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     for (let i = 11; i >= 0; i--) {
       const d = startOfMonth(subMonths(now, i))
       const monthKey = format(d, 'yyyy-MM')
-      const monthLabel = format(d, 'MMM yy')
+      const monthLabel = format(d, 'MMM')
       const prevMonthKey = format(subMonths(d, 1), 'yyyy-MM')
 
       const lpgCost = fuel

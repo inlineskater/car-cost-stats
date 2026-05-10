@@ -21,7 +21,7 @@ export default function ConsumptionLineChart({ data, avgLpg, avgPetrol }: Consum
     const lpg = data.find((p) => p.fuelType === 'lpg' && p.date.startsWith(month))
     const petrol = data.find((p) => p.fuelType === 'petrol' && p.date.startsWith(month))
     return {
-      date: format(parseISO(`${month}-01`), 'MMM yy'),
+      date: format(parseISO(`${month}-01`), 'MMM'),
       lpg: lpg?.lPer100km ?? null,
       petrol: petrol?.lPer100km ?? null,
     }

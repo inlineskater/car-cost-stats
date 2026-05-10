@@ -19,7 +19,7 @@ export default function PriceTrendChart() {
     return [...byMonth.entries()]
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([month, d]) => ({
-        date: format(parseISO(`${month}-01`), 'MMM yy'),
+        date: format(parseISO(`${month}-01`), 'MMM'),
         LPG: d.lpgCount > 0 ? +(d.lpgSum / d.lpgCount).toFixed(4) : null,
         Petrol: d.petrolCount > 0 ? +(d.petrolSum / d.petrolCount).toFixed(4) : null,
       }))
