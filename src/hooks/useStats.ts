@@ -21,34 +21,61 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
     const totalKm = maxKm - minKm
     const costPerKm = totalKm > 0 ? (totalFuelCost + totalOtherCost) / totalKm : null
 
-    // fill-to-fill consumption by fuel type
+    // fill-to-fill consumption — group by type first so petrol (filled rarely)
+    // is compared to the previous petrol fill-up, spanning all the LPG km in between
     const consumptionHistory: ConsumptionPoint[] = []
     const lpgConsumptions: number[] = []
     const petrolConsumptions: number[] = []
 
-    // fuel is sorted ascending by date
-    for (let i = 1; i < fuel.length; i++) {
-      const prev = fuel[i - 1]
-      const curr = fuel[i]
-      if (prev.fuel_type !== curr.fuel_type) continue
-      const dist = curr.mileage - prev.mileage
-      if (dist <= 0 || dist > 2000) continue
-      const lPer100 = (Number(prev.liters) / dist) * 100
-      consumptionHistory.push({ date: curr.date, fuelType: curr.fuel_type, lPer100km: +lPer100.toFixed(2) })
-      if (curr.fuel_type === 'lpg') lpgConsumptions.push(lPer100)
-      else petrolConsumptions.push(lPer100)
+    const lpgEntries = fuel.filter((e) => e.fuel_type === 'lpg')
+    const petrolEntries = fuel.filter((e) => e.fuel_type === 'petrol')
+
+    const calcFillToFill = (entries: typeof fuel, maxDist: number) => {
+      for (let i = 1; i < entries.length; i++) {
+        const prev = entries[i - 1]
+        const curr = entries[i]
+        const dist = curr.mileage - prev.mileage
+        if (dist <= 0 || dist > maxDist) continue
+        const lPer100 = (Number(prev.liters) / dist) * 100
+        consumptionHistory.push({ date: curr.date, fuelType: curr.fuel_type, lPer100km: +lPer100.toFixed(2) })
+        if (curr.fuel_type === 'lpg') lpgConsumptions.push(lPer100)
+        else petrolConsumptions.push(lPer100)
+      }
     }
+
+    // LPG: typical range 350-600 km, allow up to 1 200 km (missed fill-up)
+    calcFillToFill(lpgEntries, 1200)
+    // Petrol on dual-fuel: filled very rarely, distance between fills can be thousands of km
+    calcFillToFill(petrolEntries, 15000)
+
+    consumptionHistory.sort((a, b) => a.date.localeCompare(b.date))
 
     const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
     const avgConsumptionLpg = avg(lpgConsumptions)
     const avgConsumptionPetrol = avg(petrolConsumptions)
 
-    // fuel type share
-    const lpgTotal = fuel.filter((e) => e.fuel_type === 'lpg').reduce((s, e) => s + Number(e.total_cost), 0)
-    const petrolTotal = fuel.filter((e) => e.fuel_type === 'petrol').reduce((s, e) => s + Number(e.total_cost), 0)
+    // fuel type share + totals
+    const lpgTotal = lpgEntries.reduce((s, e) => s + Number(e.total_cost), 0)
+    const petrolTotal = petrolEntries.reduce((s, e) => s + Number(e.total_cost), 0)
     const fuelTotal = lpgTotal + petrolTotal
     const lpgShare = fuelTotal > 0 ? (lpgTotal / fuelTotal) * 100 : 0
     const petrolShare = fuelTotal > 0 ? (petrolTotal / fuelTotal) * 100 : 0
+
+    const totalLitersLpg = lpgEntries.reduce((s, e) => s + Number(e.liters), 0)
+    const totalLitersPetrol = petrolEntries.reduce((s, e) => s + Number(e.liters), 0)
+
+    // weighted average price per liter (volume-weighted, not simple mean)
+    const avgPricePerLiterLpg = totalLitersLpg > 0
+      ? lpgEntries.reduce((s, e) => s + Number(e.price_per_liter) * Number(e.liters), 0) / totalLitersLpg
+      : null
+    const avgPricePerLiterPetrol = totalLitersPetrol > 0
+      ? petrolEntries.reduce((s, e) => s + Number(e.price_per_liter) * Number(e.liters), 0) / totalLitersPetrol
+      : null
+
+    // estimated savings: cost if LPG volume had been bought at petrol prices instead
+    const lpgSavings = (avgPricePerLiterLpg !== null && avgPricePerLiterPetrol !== null)
+      ? (avgPricePerLiterPetrol - avgPricePerLiterLpg) * totalLitersLpg
+      : null
 
     // monthly breakdown last 12 months
     const monthlyBreakdown: MonthlyBreakdown[] = []
@@ -83,6 +110,13 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       consumptionHistory,
       lpgShare: +lpgShare.toFixed(1),
       petrolShare: +petrolShare.toFixed(1),
+      totalLitersLpg: +totalLitersLpg.toFixed(1),
+      totalLitersPetrol: +totalLitersPetrol.toFixed(1),
+      avgPricePerLiterLpg: avgPricePerLiterLpg !== null ? +avgPricePerLiterLpg.toFixed(4) : null,
+      avgPricePerLiterPetrol: avgPricePerLiterPetrol !== null ? +avgPricePerLiterPetrol.toFixed(4) : null,
+      fillUpCountLpg: lpgEntries.length,
+      fillUpCountPetrol: petrolEntries.length,
+      lpgSavings: lpgSavings !== null ? +lpgSavings.toFixed(2) : null,
     }
   }, [fuel, costs])
 

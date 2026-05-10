@@ -39,12 +39,41 @@ export default function Statistics() {
           <StatCard
             label="Cost / km"
             value={stats.costPerKm ? `${stats.costPerKm.toFixed(2)} zł` : '—'}
+            sub="fuel + other costs"
           />
           <StatCard
             label="Fuel cost"
             value={formatCurrency(stats.totalFuelCost)}
             sub={`Other: ${formatCurrency(stats.totalOtherCost)}`}
           />
+        </div>
+
+        <div className="grid grid-cols-2 gap-3">
+          {stats.totalLitersLpg > 0 && (
+            <StatCard
+              label="LPG total"
+              value={`${stats.totalLitersLpg.toFixed(0)} L`}
+              sub={stats.avgPricePerLiterLpg !== null
+                ? `avg ${stats.avgPricePerLiterLpg.toFixed(3)} zł/L · ${stats.fillUpCountLpg} fill-ups`
+                : `${stats.fillUpCountLpg} fill-ups`}
+            />
+          )}
+          {stats.totalLitersPetrol > 0 && (
+            <StatCard
+              label="Petrol total"
+              value={`${stats.totalLitersPetrol.toFixed(0)} L`}
+              sub={stats.avgPricePerLiterPetrol !== null
+                ? `avg ${stats.avgPricePerLiterPetrol.toFixed(3)} zł/L · ${stats.fillUpCountPetrol} fill-ups`
+                : `${stats.fillUpCountPetrol} fill-ups`}
+            />
+          )}
+          {stats.lpgSavings !== null && stats.lpgSavings > 0 && (
+            <StatCard
+              label="LPG savings"
+              value={formatCurrency(stats.lpgSavings)}
+              sub="vs buying same volume at petrol price"
+            />
+          )}
         </div>
 
         <Card>
