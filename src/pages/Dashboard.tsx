@@ -56,6 +56,11 @@ export default function Dashboard() {
                 sub="L/100km"
                 delta={stats.momConsumptionDelta}
               />
+              <StatCard
+                label="Cost / km"
+                value={stats.costPerKm !== null ? `${stats.costPerKm.toFixed(2)}` : '—'}
+                sub="zł/km"
+              />
             </div>
 
             {/* Cost per km breakdown */}

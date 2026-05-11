@@ -1,8 +1,11 @@
+import { useState } from 'react'
 import { format, subMonths } from 'date-fns'
 import { Download, Trash2 } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import Spinner from '@/components/ui/Spinner'
 import Badge from '@/components/ui/Badge'
+import Button from '@/components/ui/Button'
+import Modal from '@/components/ui/Modal'
 import { useFuelEntries, useDeleteFuelEntry, useAllFuelEntries } from '@/hooks/useFuelEntries'
 import { useOtherCosts, useDeleteOtherCost, useAllOtherCosts } from '@/hooks/useOtherCosts'
 import { useAppStore } from '@/stores/appStore'
@@ -35,6 +38,7 @@ type Row =
 export default function History() {
   const { historyFilters, setHistoryFilters } = useAppStore()
   const addToast = useAppStore((s) => s.addToast)
+  const [pendingDelete, setPendingDelete] = useState<{ type: 'fuel' | 'cost'; id: string } | null>(null)
 
   const showFuel = historyFilters.fuelType !== 'other' && historyFilters.fuelType !== 'service'
   const showOther = historyFilters.fuelType === 'all' || historyFilters.fuelType === 'other' || historyFilters.fuelType === 'service'
@@ -120,53 +124,52 @@ export default function History() {
         ) : rows.length === 0 ? (
           <p className="text-center text-gray-400 py-12">No entries for this filter.</p>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-gray-100 text-left text-xs text-gray-400 uppercase">
-                  <th className="px-3 py-2">Date</th>
-                  <th className="px-3 py-2">Type</th>
-                  <th className="px-3 py-2">Details</th>
-                  <th className="px-3 py-2 text-right">Cost</th>
-                  <th className="px-3 py-2 w-8"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((row) => (
-                  <tr key={`${row.type}-${row.id}`} className="border-b border-gray-50 last:border-0">
-                    <td className="px-3 py-2.5 text-gray-600 whitespace-nowrap">{formatDate(row.date)}</td>
-                    <td className="px-3 py-2.5">
-                      {row.type === 'fuel' ? (
-                        <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
-                          {row.data.fuel_type.toUpperCase()}
-                        </Badge>
-                      ) : (
-                        <Badge variant="neutral" className="capitalize">{row.data.category}</Badge>
-                      )}
-                    </td>
-                    <td className="px-3 py-2.5 text-gray-700 truncate max-w-[140px]">
-                      {row.type === 'fuel'
-                        ? `${row.data.liters.toFixed(2)} L · ${row.data.mileage.toLocaleString()} km`
-                        : row.data.description}
-                    </td>
-                    <td className="px-3 py-2.5 text-right font-semibold text-gray-900 whitespace-nowrap">
-                      {formatCurrency(row.type === 'fuel' ? row.data.total_cost : row.data.cost)}
-                    </td>
-                    <td className="px-3 py-2.5">
-                      <button
-                        onClick={() => row.type === 'fuel' ? handleDeleteFuel(row.id) : handleDeleteCost(row.id)}
-                        className="text-gray-300 hover:text-red-500 transition-colors"
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div className="bg-white rounded-2xl shadow-sm">
+            {rows.map((row) => (
+              <div key={`${row.type}-${row.id}`} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 mb-0.5">
+                    {row.type === 'fuel' ? (
+                      <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
+                        {row.data.fuel_type.toUpperCase()}
+                      </Badge>
+                    ) : (
+                      <Badge variant="neutral" className="capitalize">{row.data.category}</Badge>
+                    )}
+                    <span className="text-xs text-gray-400">{formatDate(row.date)}</span>
+                  </div>
+                  <p className="text-sm text-gray-700 truncate">
+                    {row.type === 'fuel'
+                      ? `${row.data.liters.toFixed(2)} L · ${row.data.mileage.toLocaleString()} km`
+                      : row.data.description}
+                  </p>
+                </div>
+                <p className="text-sm font-semibold text-gray-900 shrink-0">
+                  {formatCurrency(row.type === 'fuel' ? row.data.total_cost : row.data.cost)}
+                </p>
+                <button
+                  onClick={() => setPendingDelete({ type: row.type, id: row.id })}
+                  className="text-gray-300 hover:text-red-500 transition-colors shrink-0"
+                >
+                  <Trash2 size={14} />
+                </button>
+              </div>
+            ))}
           </div>
         )}
       </div>
+
+      <Modal open={!!pendingDelete} onClose={() => setPendingDelete(null)} title="Delete entry?">
+        <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
+        <div className="flex gap-3">
+          <Button variant="secondary" className="flex-1" onClick={() => setPendingDelete(null)}>Cancel</Button>
+          <Button variant="danger" className="flex-1" onClick={async () => {
+            if (pendingDelete?.type === 'fuel') await handleDeleteFuel(pendingDelete.id)
+            else if (pendingDelete) await handleDeleteCost(pendingDelete.id)
+            setPendingDelete(null)
+          }}>Delete</Button>
+        </div>
+      </Modal>
     </div>
   )
 }

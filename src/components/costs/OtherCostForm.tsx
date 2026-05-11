@@ -61,11 +61,11 @@ export default function OtherCostForm({ onSubmit, submitting }: OtherCostFormPro
       <Input label="Description" placeholder="e.g. Annual insurance renewal" {...register('description')} error={errors.description?.message} />
       <Input label="Next due date (optional)" type="date" {...register('next_due_date')} />
       <div>
-        <label className="block text-sm font-medium text-slate-300 mb-1">Notes (optional)</label>
+        <label className="block text-sm font-medium text-gray-700 mb-1">Notes (optional)</label>
         <textarea
           {...register('notes')}
           rows={2}
-          className="w-full bg-slate-800 border border-slate-700 rounded-xl px-4 py-3 text-white placeholder-slate-500 focus:outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 resize-none"
+          className="w-full bg-gray-100 border-0 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 resize-none"
           placeholder="Any notes…"
         />
       </div>
