@@ -7,6 +7,7 @@ import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
+import MaintenanceReminders from '@/components/dashboard/MaintenanceReminders'
 import RecentEntriesList from '@/components/dashboard/RecentEntriesList'
 import Spinner from '@/components/ui/Spinner'
 import Card from '@/components/ui/Card'
@@ -126,6 +127,9 @@ export default function Dashboard() {
               </div>
               <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} fuelOnly={false} />
             </Card>
+
+            {/* Maintenance & renewals due */}
+            <MaintenanceReminders />
 
             {/* Upcoming costs */}
             <UpcomingCostsList costs={upcoming} />

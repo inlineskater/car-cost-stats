@@ -8,6 +8,8 @@ import Auth from '@/pages/Auth'
 import Dashboard from '@/pages/Dashboard'
 import AddFuel from '@/pages/AddFuel'
 import AddOtherCost from '@/pages/AddOtherCost'
+import Maintenance from '@/pages/Maintenance'
+import AddMaintenance from '@/pages/AddMaintenance'
 import History from '@/pages/History'
 
 function ProtectedRoute({ session, children }: { session: Session | null; children: React.ReactNode }) {
@@ -58,6 +60,8 @@ export default function App() {
         <Route index element={<Dashboard />} />
         <Route path="add-fuel" element={<AddFuel />} />
         <Route path="add-cost" element={<AddOtherCost />} />
+        <Route path="service" element={<Maintenance />} />
+        <Route path="add-service" element={<AddMaintenance />} />
         <Route path="history" element={<History />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />

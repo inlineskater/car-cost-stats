@@ -16,6 +16,18 @@ export interface Database {
         Update: Partial<OtherCostInsert>
         Relationships: []
       }
+      maintenance_records: {
+        Row: MaintenanceRecordRow
+        Insert: MaintenanceRecordInsert
+        Update: Partial<MaintenanceRecordInsert>
+        Relationships: []
+      }
+      renewals: {
+        Row: RenewalRow
+        Insert: RenewalInsert
+        Update: Partial<RenewalInsert>
+        Relationships: []
+      }
     }
     Views: Record<string, never>
     Functions: Record<string, never>
@@ -78,5 +90,45 @@ export interface OtherCostInsert {
   description: string
   next_due_date?: string | null
   attachment_url?: string | null
+  notes?: string | null
+}
+
+export interface MaintenanceRecordRow {
+  id: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  date: string
+  service_type: string
+  odometer_km: number
+  interval_km: number
+  cost: number | null
+  notes: string | null
+}
+
+export interface MaintenanceRecordInsert {
+  date: string
+  service_type: string
+  odometer_km: number
+  interval_km: number
+  cost?: number | null
+  notes?: string | null
+}
+
+export interface RenewalRow {
+  id: string
+  user_id: string
+  created_at: string
+  updated_at: string
+  category: string
+  valid_until: string
+  cost: number | null
+  notes: string | null
+}
+
+export interface RenewalInsert {
+  category: string
+  valid_until: string
+  cost?: number | null
   notes?: string | null
 }

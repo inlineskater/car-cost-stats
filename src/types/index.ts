@@ -1,4 +1,26 @@
-export type { FuelType, CostCategory, FuelEntryRow, FuelEntryInsert, OtherCostRow, OtherCostInsert } from './database'
+export type { FuelType, CostCategory, FuelEntryRow, FuelEntryInsert, OtherCostRow, OtherCostInsert, MaintenanceRecordRow, MaintenanceRecordInsert, RenewalRow, RenewalInsert } from './database'
+
+export type ReminderStatus = 'overdue' | 'due_soon' | 'ok'
+
+export interface MaintenanceStatus {
+  serviceType: string
+  label: string
+  lastOdometer: number
+  lastDate: string
+  intervalKm: number
+  nextDueKm: number
+  kmRemaining: number   // negative when overdue
+  status: ReminderStatus
+}
+
+export interface RenewalStatus {
+  id: string
+  category: string
+  label: string
+  validUntil: string
+  daysRemaining: number   // negative when overdue
+  status: ReminderStatus
+}
 
 export interface ParsedFuelEntry {
   fuel_type: 'lpg' | 'petrol' | null
