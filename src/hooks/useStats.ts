@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, parseISO, subMonths, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
+import { format, parseISO, subMonths, addMonths, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
 import { useAllFuelEntries } from './useFuelEntries'
 import { useAllOtherCosts } from './useOtherCosts'
 import type { StatsData, MonthlyBreakdown, ConsumptionPoint } from '@/types'
@@ -183,56 +183,49 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       })
     }
 
-    // Amortized breakdown: data-driven per-category monthly cost
-    const amortInsurance = (() => {
-      const entries = costs.filter((c) => c.category === 'insurance')
-      if (!entries.length) return 0
-      let total = 0
-      for (const c of entries) {
-        const months = c.next_due_date
-          ? Math.max(1, Math.round(differenceInDays(parseISO(c.next_due_date), parseISO(c.date)) / 30.44))
-          : 12
-        total += Number(c.cost) / months
-      }
-      return total
-    })()
-    const amortInspection = (() => {
-      const entries = costs.filter((c) => c.category === 'inspection')
-      if (!entries.length) return 0
-      let total = 0
-      for (const c of entries) {
-        const months = c.next_due_date
-          ? Math.max(1, Math.round(differenceInDays(parseISO(c.next_due_date), parseISO(c.date)) / 30.44))
-          : 12
-        total += Number(c.cost) / months
-      }
-      return total
-    })()
-    const amortFromSpan = (categories: string[]) => {
-      const entries = costs.filter((c) => categories.includes(c.category))
-      if (!entries.length) return 0
-      const total = entries.reduce((s, e) => s + Number(e.cost), 0)
-      const earliest = entries.reduce((min, e) => e.date < min ? e.date : min, entries[0].date)
-      const months = Math.max(12, differenceInDays(now, parseISO(earliest)) / 30.44)
-      return total / months
+    // Amortized breakdown: spread every cost straight-line over 12 months from
+    // its date, into the month buckets it covers (no flat smear, no retroactive
+    // charges before the cost was incurred).
+    const AMORT_MONTHS = 12
+    type AmortCat = 'insurance' | 'inspection' | 'service' | 'otherCat'
+    const blankAmort = (): Record<AmortCat, number> => ({ insurance: 0, inspection: 0, service: 0, otherCat: 0 })
+    const amortByMonth = new Map<string, Record<AmortCat, number>>()
+
+    const catBucket = (category: string): AmortCat | null => {
+      if (category === 'insurance') return 'insurance'
+      if (category === 'inspection') return 'inspection'
+      if (category === 'service' || category === 'repair') return 'service'
+      if (category === 'other' || category === 'tax') return 'otherCat'
+      return null
     }
-    const amortService = amortFromSpan(['service', 'repair'])
-    const amortOtherCat = amortFromSpan(['other', 'tax'])
-    const amortizedOtherPerMonth = amortInsurance + amortInspection + amortService + amortOtherCat
+
+    for (const c of costs) {
+      const cat = catBucket(c.category)
+      if (!cat) continue
+      const per = Number(c.cost) / AMORT_MONTHS
+      const start = startOfMonth(parseISO(c.date))
+      for (let i = 0; i < AMORT_MONTHS; i++) {
+        const key = format(addMonths(start, i), 'yyyy-MM')
+        const e = amortByMonth.get(key) ?? blankAmort()
+        e[cat] += per
+        amortByMonth.set(key, e)
+      }
+    }
 
     const monthlyBreakdownAmortized: MonthlyBreakdown[] = monthlyBreakdown.map((m) => {
-      const total = m.lpgCost + m.petrolCost + amortizedOtherPerMonth
+      const a = amortByMonth.get(m.month) ?? blankAmort()
+      const amortOther = a.insurance + a.inspection + a.service + a.otherCat
       const kmDriven = m.kmDriven
       return {
         ...m,
-        otherCost: +amortizedOtherPerMonth.toFixed(2),
-        total: +total.toFixed(2),
-        otherCostPerKm: kmDriven ? +(amortizedOtherPerMonth / kmDriven).toFixed(2) : null,
-        insuranceCostPerKm: kmDriven ? +(amortInsurance / kmDriven).toFixed(2) : null,
-        inspectionCostPerKm: kmDriven ? +(amortInspection / kmDriven).toFixed(2) : null,
-        serviceCostPerKm: kmDriven ? +(amortService / kmDriven).toFixed(2) : null,
+        otherCost: +amortOther.toFixed(2),
+        total: +(m.lpgCost + m.petrolCost + amortOther).toFixed(2),
+        otherCostPerKm: kmDriven ? +(amortOther / kmDriven).toFixed(2) : null,
+        insuranceCostPerKm: kmDriven ? +(a.insurance / kmDriven).toFixed(2) : null,
+        inspectionCostPerKm: kmDriven ? +(a.inspection / kmDriven).toFixed(2) : null,
+        serviceCostPerKm: kmDriven ? +(a.service / kmDriven).toFixed(2) : null,
         repairCostPerKm: null,
-        otherCatCostPerKm: kmDriven ? +(amortOtherCat / kmDriven).toFixed(2) : null,
+        otherCatCostPerKm: kmDriven ? +(a.otherCat / kmDriven).toFixed(2) : null,
       }
     })
 

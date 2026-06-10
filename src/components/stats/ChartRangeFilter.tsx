@@ -14,6 +14,7 @@ export default function ChartRangeFilter({ value, onChange, years }: ChartRangeF
       className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 focus:outline-none transition-colors"
     >
       <option value="12m">Last 12 months</option>
+      <option value="24m">Last 24 months</option>
       {years.map((y) => (
         <option key={y} value={y}>{y}</option>
       ))}

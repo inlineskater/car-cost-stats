@@ -23,6 +23,7 @@ function filterBreakdown(data: MonthlyBreakdown[], range: string): MonthlyBreakd
   let filtered: MonthlyBreakdown[]
   if (range === 'all') filtered = data
   else if (range === '12m') filtered = data.slice(-12)
+  else if (range === '24m') filtered = data.slice(-24)
   else filtered = data.filter((m) => m.month.startsWith(range))
 
   // include the year in the label only when the window spans multiple years
@@ -33,9 +34,9 @@ function filterBreakdown(data: MonthlyBreakdown[], range: string): MonthlyBreakd
 
 function filterConsumption(points: ConsumptionPoint[], range: string): ConsumptionPoint[] {
   if (range === 'all') return points
-  if (range === '12m') {
+  if (range === '12m' || range === '24m') {
     const months = [...new Set(points.map((p) => p.date.substring(0, 7)))].sort()
-    const keep = new Set(months.slice(-12))
+    const keep = new Set(months.slice(range === '24m' ? -24 : -12))
     return points.filter((p) => keep.has(p.date.substring(0, 7)))
   }
   return points.filter((p) => p.date.startsWith(range))
@@ -57,6 +58,30 @@ export default function Dashboard() {
   const baseMonthly = stats ? (amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown) : []
   const monthlyFiltered = filterBreakdown(baseMonthly, range)
   const consumptionFiltered = stats ? filterConsumption(stats.consumptionHistory, range) : []
+
+  // actual cash spent per category within the selected range (months shown in the chart)
+  const monthSet = new Set(monthlyFiltered.map((m) => m.month))
+  const inRange = (date: string) => monthSet.has(date.substring(0, 7))
+  const categoryTotals = (() => {
+    const totals: Record<string, number> = {}
+    for (const e of fuelEntries) {
+      if (!inRange(e.date)) continue
+      const k = e.fuel_type === 'lpg' ? 'LPG' : 'Petrol'
+      totals[k] = (totals[k] ?? 0) + Number(e.total_cost)
+    }
+    const catLabel: Record<string, string> = {
+      insurance: 'Insurance', inspection: 'Inspection',
+      service: 'Service', repair: 'Service', other: 'Other', tax: 'Tax',
+    }
+    for (const c of otherCosts) {
+      if (!inRange(c.date)) continue
+      const k = catLabel[c.category] ?? 'Other'
+      totals[k] = (totals[k] ?? 0) + Number(c.cost)
+    }
+    return Object.entries(totals).filter(([, v]) => v > 0).sort((a, b) => b[1] - a[1])
+  })()
+  const categoryTotalSum = categoryTotals.reduce((s, [, v]) => s + v, 0)
+  const rangeLabel = range === '12m' ? 'last 12 mo' : range === '24m' ? 'last 24 mo' : range === 'all' ? 'all time' : range
 
   return (
     <div>
@@ -138,6 +163,30 @@ export default function Dashboard() {
               </div>
               <MonthlyBarChart data={monthlyFiltered} />
             </Card>
+
+            {/* Total cost per category for the selected range */}
+            {categoryTotals.length > 0 && (
+              <Card>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-500">Cost by category · {rangeLabel}</h3>
+                  <div className="flex items-center gap-2">
+                    <p className="text-base font-bold text-gray-900">{formatCurrency(categoryTotalSum)}</p>
+                    <ChartRangeFilter value={range} onChange={setRange} years={years} />
+                  </div>
+                </div>
+                <div className="space-y-1.5">
+                  {categoryTotals.map(([label, value]) => (
+                    <div key={label} className="flex items-center gap-2 text-xs">
+                      <span className="w-20 text-gray-500">{label}</span>
+                      <div className="flex-1 bg-gray-100 rounded-full h-2 overflow-hidden">
+                        <div className="h-full bg-blue-400 rounded-full" style={{ width: `${(value / categoryTotalSum) * 100}%` }} />
+                      </div>
+                      <span className="text-gray-600 w-16 text-right">{formatCurrency(value)}</span>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
 
             {/* Consumption chart */}
             {stats.consumptionHistory.length > 1 && (
