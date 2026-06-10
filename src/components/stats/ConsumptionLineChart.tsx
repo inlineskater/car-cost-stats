@@ -17,11 +17,15 @@ export default function ConsumptionLineChart({ data, avgLpg, avgPetrol }: Consum
     return <p className="text-center text-gray-400 text-sm py-6">Need at least 2 months of data</p>
   }
 
+  // include the year in the label only when the window spans multiple years
+  const spansYears = new Set(months.map((m) => m.slice(0, 4))).size > 1
+  const fmt = spansYears ? 'MMM yy' : 'MMM'
+
   const chartData = months.map((month) => {
     const lpg = data.find((p) => p.fuelType === 'lpg' && p.date.startsWith(month))
     const petrol = data.find((p) => p.fuelType === 'petrol' && p.date.startsWith(month))
     return {
-      date: format(parseISO(`${month}-01`), 'MMM'),
+      date: format(parseISO(`${month}-01`), fmt),
       lpg: lpg?.lPer100km ?? null,
       petrol: petrol?.lPer100km ?? null,
     }

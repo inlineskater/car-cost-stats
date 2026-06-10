@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, parseISO, subMonths, startOfMonth, differenceInDays } from 'date-fns'
+import { format, parseISO, subMonths, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
 import { useAllFuelEntries } from './useFuelEntries'
 import { useAllOtherCosts } from './useOtherCosts'
 import type { StatsData, MonthlyBreakdown, ConsumptionPoint } from '@/types'
@@ -135,10 +135,14 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       maxMileageByMonth.set(m, Math.max(maxMileageByMonth.get(m) ?? 0, e.mileage))
     }
 
-    // monthly breakdown last 12 months
+    // monthly breakdown across the full data span (earliest entry → current
+    // month). Callers can slice this to a year / last-12-months window.
     const monthlyBreakdown: MonthlyBreakdown[] = []
     const now = new Date()
-    for (let i = 11; i >= 0; i--) {
+    const allDates = [...fuel.map((e) => e.date), ...costs.map((c) => c.date)].filter(Boolean)
+    const earliest = allDates.length ? allDates.reduce((a, b) => (a < b ? a : b)) : format(now, 'yyyy-MM-dd')
+    const monthSpan = Math.max(12, differenceInCalendarMonths(now, startOfMonth(parseISO(earliest))) + 1)
+    for (let i = monthSpan - 1; i >= 0; i--) {
       const d = startOfMonth(subMonths(now, i))
       const monthKey = format(d, 'yyyy-MM')
       const monthLabel = format(d, 'MMM')

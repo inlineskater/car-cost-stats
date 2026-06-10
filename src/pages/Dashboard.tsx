@@ -1,11 +1,13 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { format, parseISO } from 'date-fns'
 import { Plus } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import StatCard from '@/components/stats/StatCard'
 import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
+import ChartRangeFilter, { DEFAULT_RANGE } from '@/components/stats/ChartRangeFilter'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
 import MaintenanceReminders from '@/components/dashboard/MaintenanceReminders'
 import RecentEntriesList from '@/components/dashboard/RecentEntriesList'
@@ -15,14 +17,46 @@ import { useStats, useUpcomingCosts } from '@/hooks/useStats'
 import { useAllFuelEntries } from '@/hooks/useFuelEntries'
 import { useAllOtherCosts } from '@/hooks/useOtherCosts'
 import { formatCurrency } from '@/lib/utils'
+import type { MonthlyBreakdown, ConsumptionPoint } from '@/types'
+
+function filterBreakdown(data: MonthlyBreakdown[], range: string): MonthlyBreakdown[] {
+  let filtered: MonthlyBreakdown[]
+  if (range === 'all') filtered = data
+  else if (range === '12m') filtered = data.slice(-12)
+  else filtered = data.filter((m) => m.month.startsWith(range))
+
+  // include the year in the label only when the window spans multiple years
+  const spansYears = new Set(filtered.map((m) => m.month.slice(0, 4))).size > 1
+  const fmt = spansYears ? 'MMM yy' : 'MMM'
+  return filtered.map((m) => ({ ...m, label: format(parseISO(`${m.month}-01`), fmt) }))
+}
+
+function filterConsumption(points: ConsumptionPoint[], range: string): ConsumptionPoint[] {
+  if (range === 'all') return points
+  if (range === '12m') {
+    const months = [...new Set(points.map((p) => p.date.substring(0, 7)))].sort()
+    const keep = new Set(months.slice(-12))
+    return points.filter((p) => keep.has(p.date.substring(0, 7)))
+  }
+  return points.filter((p) => p.date.startsWith(range))
+}
 
 export default function Dashboard() {
   const navigate = useNavigate()
   const [amortized, setAmortized] = useState(true)
+  const [range, setRange] = useState<string>(DEFAULT_RANGE)
   const { data: stats, isLoading } = useStats()
   const upcoming = useUpcomingCosts()
   const { data: fuelEntries = [] } = useAllFuelEntries()
   const { data: otherCosts = [] } = useAllOtherCosts()
+
+  // years available in the data, newest first — drives the chart range filter
+  const years = stats
+    ? [...new Set(stats.monthlyBreakdown.filter((m) => m.total > 0).map((m) => m.month.slice(0, 4)))].sort().reverse()
+    : []
+  const baseMonthly = stats ? (amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown) : []
+  const monthlyFiltered = filterBreakdown(baseMonthly, range)
+  const consumptionFiltered = stats ? filterConsumption(stats.consumptionHistory, range) : []
 
   return (
     <div>
@@ -92,22 +126,28 @@ export default function Dashboard() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-500">Monthly costs</h3>
-                <button
-                  onClick={() => setAmortized(!amortized)}
-                  className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {amortized ? 'Amortized' : 'Actual'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setAmortized(!amortized)}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    {amortized ? 'Amortized' : 'Actual'}
+                  </button>
+                  <ChartRangeFilter value={range} onChange={setRange} years={years} />
+                </div>
               </div>
-              <MonthlyBarChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} />
+              <MonthlyBarChart data={monthlyFiltered} />
             </Card>
 
             {/* Consumption chart */}
             {stats.consumptionHistory.length > 1 && (
               <Card>
-                <h3 className="text-sm font-semibold text-gray-500 mb-3">Consumption (L/100km)</h3>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-500">Consumption (L/100km)</h3>
+                  <ChartRangeFilter value={range} onChange={setRange} years={years} />
+                </div>
                 <ConsumptionLineChart
-                  data={stats.consumptionHistory}
+                  data={consumptionFiltered}
                   avgLpg={stats.avgConsumptionLpg}
                   avgPetrol={stats.avgConsumptionPetrol}
                 />
@@ -118,14 +158,17 @@ export default function Dashboard() {
             <Card>
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-500">Cost per km (zł/km)</h3>
-                <button
-                  onClick={() => setAmortized(!amortized)}
-                  className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
-                >
-                  {amortized ? 'Amortized' : 'Actual'}
-                </button>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setAmortized(!amortized)}
+                    className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
+                  >
+                    {amortized ? 'Amortized' : 'Actual'}
+                  </button>
+                  <ChartRangeFilter value={range} onChange={setRange} years={years} />
+                </div>
               </div>
-              <CostPerKmChart data={amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown} fuelOnly={false} />
+              <CostPerKmChart data={monthlyFiltered} fuelOnly={false} />
             </Card>
 
             {/* Maintenance & renewals due */}
