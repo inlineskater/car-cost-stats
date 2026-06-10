@@ -2,11 +2,13 @@ import { useMemo } from 'react'
 import { format, parseISO, subMonths, addMonths, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
 import { useAllFuelEntries } from './useFuelEntries'
 import { useAllOtherCosts } from './useOtherCosts'
+import { useAppStore } from '@/stores/appStore'
 import type { StatsData, MonthlyBreakdown, ConsumptionPoint } from '@/types'
 
 export function useStats(): { data: StatsData | null; isLoading: boolean } {
   const { data: fuel, isLoading: fl } = useAllFuelEntries()
   const { data: costs, isLoading: cl } = useAllOtherCosts()
+  const amortMonths = useAppStore((s) => s.amortMonths)
 
   const data = useMemo<StatsData | null>(() => {
     if (!fuel || !costs) return null
@@ -183,10 +185,9 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       })
     }
 
-    // Amortized breakdown: spread every cost straight-line over 12 months from
-    // its date, into the month buckets it covers (no flat smear, no retroactive
-    // charges before the cost was incurred).
-    const AMORT_MONTHS = 12
+    // Amortized breakdown: spread every cost straight-line over a configurable
+    // number of months (per category) from its date, into the month buckets it
+    // covers — no flat smear, no charges before the cost was incurred.
     type AmortCat = 'insurance' | 'inspection' | 'service' | 'otherCat'
     const blankAmort = (): Record<AmortCat, number> => ({ insurance: 0, inspection: 0, service: 0, otherCat: 0 })
     const amortByMonth = new Map<string, Record<AmortCat, number>>()
@@ -198,13 +199,18 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       if (category === 'other' || category === 'tax') return 'otherCat'
       return null
     }
+    const monthsFor = (cat: AmortCat): number => {
+      const n = cat === 'otherCat' ? amortMonths.other : amortMonths[cat]
+      return Math.max(1, Math.round(n) || 1)
+    }
 
     for (const c of costs) {
       const cat = catBucket(c.category)
       if (!cat) continue
-      const per = Number(c.cost) / AMORT_MONTHS
+      const months = monthsFor(cat)
+      const per = Number(c.cost) / months
       const start = startOfMonth(parseISO(c.date))
-      for (let i = 0; i < AMORT_MONTHS; i++) {
+      for (let i = 0; i < months; i++) {
         const key = format(addMonths(start, i), 'yyyy-MM')
         const e = amortByMonth.get(key) ?? blankAmort()
         e[cat] += per
@@ -281,7 +287,7 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       avgKmBetweenLpgFills,
       maxKmOnOneLpgTank,
     }
-  }, [fuel, costs])
+  }, [fuel, costs, amortMonths])
 
   return { data, isLoading: fl || cl }
 }

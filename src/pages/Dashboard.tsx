@@ -8,6 +8,7 @@ import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
 import ChartRangeFilter, { DEFAULT_RANGE } from '@/components/stats/ChartRangeFilter'
+import AmortSettings from '@/components/stats/AmortSettings'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
 import MaintenanceReminders from '@/components/dashboard/MaintenanceReminders'
 import RecentEntriesList from '@/components/dashboard/RecentEntriesList'
@@ -152,6 +153,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-500">Monthly costs</h3>
                 <div className="flex items-center gap-2">
+                  {amortized && <AmortSettings />}
                   <button
                     onClick={() => setAmortized(!amortized)}
                     className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
@@ -208,6 +210,7 @@ export default function Dashboard() {
               <div className="flex items-center justify-between mb-3">
                 <h3 className="text-sm font-semibold text-gray-500">Cost per km (zł/km)</h3>
                 <div className="flex items-center gap-2">
+                  {amortized && <AmortSettings />}
                   <button
                     onClick={() => setAmortized(!amortized)}
                     className={`text-xs px-2 py-1 rounded-lg transition-colors ${amortized ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'}`}
