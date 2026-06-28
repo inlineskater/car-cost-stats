@@ -7,6 +7,7 @@ import StatCard from '@/components/stats/StatCard'
 import MonthlyBarChart from '@/components/stats/MonthlyBarChart'
 import CostPerKmChart from '@/components/stats/CostPerKmChart'
 import ConsumptionLineChart from '@/components/stats/ConsumptionLineChart'
+import KmPerMonthChart from '@/components/stats/KmPerMonthChart'
 import ChartRangeFilter, { DEFAULT_RANGE } from '@/components/stats/ChartRangeFilter'
 import AmortSettings from '@/components/stats/AmortSettings'
 import UpcomingCostsList from '@/components/dashboard/UpcomingCostsList'
@@ -59,6 +60,7 @@ export default function Dashboard() {
   const baseMonthly = stats ? (amortized ? stats.monthlyBreakdownAmortized : stats.monthlyBreakdown) : []
   const monthlyFiltered = filterBreakdown(baseMonthly, range)
   const consumptionFiltered = stats ? filterConsumption(stats.consumptionHistory, range) : []
+  const hasKmPerMonth = monthlyFiltered.filter((m) => m.kmDriven !== null && m.kmDriven > 0).length >= 2
 
   // actual cash spent per category within the selected range (months shown in the chart)
   const monthSet = new Set(monthlyFiltered.map((m) => m.month))
@@ -165,6 +167,17 @@ export default function Dashboard() {
               </div>
               <MonthlyBarChart data={monthlyFiltered} />
             </Card>
+
+            {/* Kilometers per month chart */}
+            {hasKmPerMonth && (
+              <Card>
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-sm font-semibold text-gray-500">Kilometers per month</h3>
+                  <ChartRangeFilter value={range} onChange={setRange} years={years} />
+                </div>
+                <KmPerMonthChart data={monthlyFiltered} />
+              </Card>
+            )}
 
             {/* Total cost per category for the selected range */}
             {categoryTotals.length > 0 && (
