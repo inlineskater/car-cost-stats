@@ -25,9 +25,8 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
 
     // fill-to-fill consumption — group by type first so petrol (filled rarely)
     // is compared to the previous petrol fill-up, spanning all the LPG km in between
-    const consumptionHistory: ConsumptionPoint[] = []
-    const lpgConsumptions: number[] = []
-    const petrolConsumptions: number[] = []
+    type ConsumptionReading = ConsumptionPoint & { liters: number; distanceKm: number }
+    const consumptionReadings: ConsumptionReading[] = []
 
     const lpgEntries = fuel.filter((e) => e.fuel_type === 'lpg').sort((a, b) => a.mileage - b.mileage)
     const petrolEntries = fuel.filter((e) => e.fuel_type === 'petrol').sort((a, b) => a.mileage - b.mileage)
@@ -38,35 +37,50 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
         const curr = entries[i]
         const dist = curr.mileage - prev.mileage
         if (dist <= 0 || dist > maxDist) continue
-        const lPer100 = (Number(curr.liters) / dist) * 100
-        consumptionHistory.push({ date: curr.date, fuelType: curr.fuel_type, lPer100km: +lPer100.toFixed(2) })
-        if (curr.fuel_type === 'lpg') lpgConsumptions.push(lPer100)
-        else petrolConsumptions.push(lPer100)
+        const liters = Number(curr.liters)
+        const lPer100 = (liters / dist) * 100
+        consumptionReadings.push({
+          date: curr.date,
+          fuelType: curr.fuel_type,
+          lPer100km: +lPer100.toFixed(2),
+          liters,
+          distanceKm: dist,
+        })
       }
     }
 
     calcFillToFill(lpgEntries, 1200)
     calcFillToFill(petrolEntries, 15000)
 
-    // Average fill-to-fill readings per month so the chart shows one smooth
-    // data point per month instead of noisy per-fill-up spikes
-    const byMonth = new Map<string, { lpgSum: number; lpgCount: number; petrolSum: number; petrolCount: number }>()
-    for (const p of consumptionHistory) {
+    // Weight fill-to-fill readings by distance so partial refuels do not create
+    // noisy consumption spikes in the headline average or monthly chart.
+    const byMonth = new Map<string, { lpgLiters: number; lpgDistance: number; petrolLiters: number; petrolDistance: number }>()
+    for (const p of consumptionReadings) {
       const month = p.date.substring(0, 7)
-      const e = byMonth.get(month) ?? { lpgSum: 0, lpgCount: 0, petrolSum: 0, petrolCount: 0 }
-      if (p.fuelType === 'lpg') { e.lpgSum += p.lPer100km; e.lpgCount++ }
-      else { e.petrolSum += p.lPer100km; e.petrolCount++ }
+      const e = byMonth.get(month) ?? { lpgLiters: 0, lpgDistance: 0, petrolLiters: 0, petrolDistance: 0 }
+      if (p.fuelType === 'lpg') {
+        e.lpgLiters += p.liters
+        e.lpgDistance += p.distanceKm
+      } else {
+        e.petrolLiters += p.liters
+        e.petrolDistance += p.distanceKm
+      }
       byMonth.set(month, e)
     }
     const monthlyConsumption: ConsumptionPoint[] = []
     for (const [month, d] of [...byMonth.entries()].sort()) {
-      if (d.lpgCount > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'lpg', lPer100km: +(d.lpgSum / d.lpgCount).toFixed(2) })
-      if (d.petrolCount > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'petrol', lPer100km: +(d.petrolSum / d.petrolCount).toFixed(2) })
+      if (d.lpgDistance > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'lpg', lPer100km: +(d.lpgLiters / d.lpgDistance * 100).toFixed(2) })
+      if (d.petrolDistance > 0) monthlyConsumption.push({ date: `${month}-01`, fuelType: 'petrol', lPer100km: +(d.petrolLiters / d.petrolDistance * 100).toFixed(2) })
     }
 
-    const avg = (arr: number[]) => arr.length ? arr.reduce((a, b) => a + b, 0) / arr.length : null
-    const avgConsumptionLpg = avg(lpgConsumptions)
-    const avgConsumptionPetrol = avg(petrolConsumptions)
+    const weightedAvg = (fuelType: 'lpg' | 'petrol') => {
+      const readings = consumptionReadings.filter((p) => p.fuelType === fuelType)
+      const liters = readings.reduce((s, p) => s + p.liters, 0)
+      const distanceKm = readings.reduce((s, p) => s + p.distanceKm, 0)
+      return distanceKm > 0 ? (liters / distanceKm) * 100 : null
+    }
+    const avgConsumptionLpg = weightedAvg('lpg')
+    const avgConsumptionPetrol = weightedAvg('petrol')
 
     // fuel type share + totals
     const lpgTotal = lpgEntries.reduce((s, e) => s + Number(e.total_cost), 0)
