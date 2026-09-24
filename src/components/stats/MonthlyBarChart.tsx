@@ -18,10 +18,10 @@ export default function MonthlyBarChart({ data, fuelOnly }: MonthlyBarChartProps
         <YAxis {...axisProps} tickFormatter={(v: number) => `${v}`} />
         <Tooltip {...tooltipProps} formatter={(v: number) => `${v.toFixed(0)} zł`} />
         <Legend {...legendProps} />
-        <Bar dataKey="lpgCost" name="LPG" stackId="a" fill={CHART_COLORS.lpg} />
-        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill={CHART_COLORS.petrol} radius={fuelOnly ? [3, 3, 0, 0] : undefined} />
+        <Bar isAnimationActive={false} dataKey="lpgCost" name="LPG" stackId="a" fill={CHART_COLORS.lpg} />
+        <Bar isAnimationActive={false} dataKey="petrolCost" name="Petrol" stackId="a" fill={CHART_COLORS.petrol} radius={fuelOnly ? [3, 3, 0, 0] : undefined} />
         {!fuelOnly && (
-          <Bar dataKey="otherCost" name="Other" stackId="a" fill={CHART_COLORS.inspection} radius={[3, 3, 0, 0]} />
+          <Bar isAnimationActive={false} dataKey="otherCost" name="Other" stackId="a" fill={CHART_COLORS.inspection} radius={[3, 3, 0, 0]} />
         )}
       </BarChart>
     </ResponsiveContainer>

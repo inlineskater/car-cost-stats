@@ -2,8 +2,9 @@ import { CalendarClock } from 'lucide-react'
 import { differenceInCalendarDays, parseISO } from 'date-fns'
 import Badge from '@/components/ui/Badge'
 import Section from '@/components/ui/Section'
+import DateCell from '@/components/ui/DateCell'
 import type { OtherCostRow } from '@/types'
-import { formatCurrency, formatDate } from '@/lib/utils'
+import { formatCurrency } from '@/lib/utils'
 
 interface UpcomingCostsListProps {
   costs: OtherCostRow[]
@@ -24,9 +25,9 @@ export default function UpcomingCostsList({ costs }: UpcomingCostsListProps) {
               const days = differenceInCalendarDays(parseISO(c.next_due_date!), new Date())
               return (
                 <tr key={c.id}>
-                  <td className="max-w-[220px] truncate">{c.description}</td>
+                  <td className="grow-cell">{c.description}</td>
                   <td className="whitespace-nowrap">
-                    <span className="text-ink-muted mr-2">{formatDate(c.next_due_date!)}</span>
+                    <span className="text-ink-muted mr-2 hidden sm:inline"><DateCell date={c.next_due_date!} /></span>
                     <Badge variant={days <= 7 ? 'danger' : 'warning'}>{days <= 0 ? 'today' : `in ${days}d`}</Badge>
                   </td>
                   <td className="num">{formatCurrency(c.cost)}</td>

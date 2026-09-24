@@ -24,7 +24,7 @@ export default function AmortSettings() {
         title="Amortization settings"
         className="n-chip"
       >
-        <Settings2 size={14} /> Periods
+        <Settings2 size={14} /> <span className="hidden sm:inline">Periods</span>
       </button>
 
       <Modal open={open} onClose={() => setOpen(false)} title="Amortization period">

@@ -47,7 +47,7 @@ export default function AddMaintenance() {
   return (
     <div>
       <TopBar title="Add Service" icon="🛠️" />
-      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-4 [&>*]:max-w-lg">
+      <div className="px-4 md:px-8 lg:px-12 pb-8 max-w-5xl mx-auto space-y-4 [&>*]:max-w-lg">
         <div className="flex gap-1.5 bg-surface-sidebar rounded-md p-1">
           {tabs.map((t) => (
             <button

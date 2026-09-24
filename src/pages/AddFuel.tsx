@@ -164,7 +164,7 @@ export default function AddFuel() {
   return (
     <div>
       <TopBar title="Add Fuel" />
-      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-5 [&>*]:max-w-lg">
+      <div className="px-4 md:px-8 lg:px-12 pb-8 max-w-5xl mx-auto space-y-5 [&>*]:max-w-lg">
 
         {phase === 'capture' && (
           <>

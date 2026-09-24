@@ -3,7 +3,8 @@ import { format, parseISO } from 'date-fns'
 import { Download, Trash2 } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import Spinner from '@/components/ui/Spinner'
-import Badge from '@/components/ui/Badge'
+import Badge, { categoryVariant } from '@/components/ui/Badge'
+import DateCell from '@/components/ui/DateCell'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import { useFuelEntries, useDeleteFuelEntry, useAllFuelEntries } from '@/hooks/useFuelEntries'
@@ -11,7 +12,7 @@ import { useOtherCosts, useDeleteOtherCost, useAllOtherCosts } from '@/hooks/use
 import { useAppStore } from '@/stores/appStore'
 import type { HistoryFilters, FuelType } from '@/types'
 import type { FuelEntryRow, OtherCostRow } from '@/types/database'
-import { cn, formatCurrency, formatDate } from '@/lib/utils'
+import { cn, formatCurrency } from '@/lib/utils'
 import { exportCsv } from '@/lib/exportCsv'
 
 const FUEL_TABS: { value: HistoryFilters['fuelType']; label: string }[] = [
@@ -28,14 +29,6 @@ function monthOptions(dates: string[]) {
     .sort()
     .reverse()
     .map((m) => ({ value: m, label: format(parseISO(`${m}-01`), 'MMM yyyy') }))
-}
-
-const CATEGORY_BADGE: Record<string, 'purple' | 'info' | 'yellow' | 'warning' | 'neutral'> = {
-  service: 'purple',
-  repair: 'purple',
-  insurance: 'info',
-  inspection: 'yellow',
-  tax: 'warning',
 }
 
 type Row =
@@ -103,10 +96,10 @@ export default function History() {
         }
       />
 
-      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto">
+      <div className="px-4 md:px-8 lg:px-12 pb-8 max-w-5xl mx-auto">
         {/* view tabs + filter, Notion database style */}
-        <div className="sticky top-11 z-20 bg-white/95 backdrop-blur border-b border-line flex items-center gap-1 -mx-2 px-2">
-          <div className="flex gap-0.5 overflow-x-auto no-scrollbar flex-1">
+        <div className="sticky top-11 z-20 bg-white/95 backdrop-blur border-b border-line flex flex-wrap sm:flex-nowrap items-center justify-between gap-x-1 -mx-2 px-2">
+          <div className="flex gap-0.5 overflow-x-auto no-scrollbar min-w-0 max-w-full">
             {FUEL_TABS.map((tab) => (
               <button
                 key={tab.value}
@@ -125,7 +118,7 @@ export default function History() {
           <select
             value={historyFilters.month ?? ''}
             onChange={(e) => setHistoryFilters({ month: e.target.value || null })}
-            className="shrink-0 text-sm bg-transparent text-ink-muted rounded-md px-1.5 py-1 hover:bg-surface-hover focus:outline-none cursor-pointer"
+            className="shrink-0 ml-auto mb-1 sm:mb-0 text-sm bg-transparent text-ink-muted rounded-md px-1.5 py-1 hover:bg-surface-hover focus:outline-none cursor-pointer"
           >
             <option value="">All months</option>
             {months.map((m) => (
@@ -144,9 +137,9 @@ export default function History() {
               <thead>
                 <tr>
                   <th>Date</th>
-                  <th>Type</th>
+                  <th className="hidden sm:table-cell">Type</th>
                   <th>Details</th>
-                  <th className="num hidden sm:table-cell">Odometer</th>
+                  <th className="num hidden lg:table-cell">Odometer</th>
                   <th className="num">Amount</th>
                   <th className="w-8" />
                 </tr>
@@ -154,22 +147,29 @@ export default function History() {
               <tbody>
                 {rows.map((row) => (
                   <tr key={`${row.type}-${row.id}`} className="group">
-                    <td className="whitespace-nowrap text-ink-muted">{formatDate(row.date)}</td>
-                    <td>
+                    <td className="whitespace-nowrap text-ink-muted"><DateCell date={row.date} /></td>
+                    <td className="hidden sm:table-cell">
                       {row.type === 'fuel' ? (
                         <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
                           {row.data.fuel_type.toUpperCase()}
                         </Badge>
                       ) : (
-                        <Badge variant={CATEGORY_BADGE[row.data.category] ?? 'neutral'} className="capitalize">{row.data.category}</Badge>
+                        <Badge variant={categoryVariant(row.data.category)} className="capitalize">{row.data.category}</Badge>
                       )}
                     </td>
-                    <td className="max-w-[240px] truncate">
+                    <td className="grow-cell">
+                      <span className="sm:hidden mr-1.5">
+                        {row.type === 'fuel' ? (
+                          <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>{row.data.fuel_type.toUpperCase()}</Badge>
+                        ) : (
+                          <Badge variant={categoryVariant(row.data.category)} className="capitalize">{row.data.category}</Badge>
+                        )}
+                      </span>
                       {row.type === 'fuel'
-                        ? <>{Number(row.data.liters).toFixed(2)} L <span className="text-ink-faint">· {Number(row.data.price_per_liter).toFixed(2)} zł/L</span></>
+                        ? <>{Number(row.data.liters).toFixed(2)} L <span className="text-ink-faint hidden sm:inline">· {Number(row.data.price_per_liter).toFixed(2)} zł/L</span></>
                         : row.data.description}
                     </td>
-                    <td className="num text-ink-muted hidden sm:table-cell">
+                    <td className="num text-ink-muted hidden lg:table-cell">
                       {row.type === 'fuel' ? Number(row.data.mileage).toLocaleString('pl-PL') : ''}
                     </td>
                     <td className="num">
@@ -189,8 +189,9 @@ export default function History() {
               </tbody>
               <tfoot>
                 <tr>
-                  <td colSpan={3} className="px-2 py-2 text-xs text-ink-muted">{rows.length} entries</td>
+                  <td colSpan={2} className="px-2 py-2 text-xs text-ink-muted">{rows.length} entries</td>
                   <td className="hidden sm:table-cell" />
+                  <td className="hidden lg:table-cell" />
                   <td className="px-2 py-2 num font-semibold">{formatCurrency(rowsTotal)}</td>
                   <td />
                 </tr>

@@ -45,7 +45,7 @@ export default function ImageCapture({ label, onImageSelected, preview, onClear 
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-ink">{label}</p>
+      <p className="text-xs text-ink-muted">{label}</p>
       {processing ? (
         <div className="flex items-center justify-center h-32 bg-surface-sidebar rounded-md border border-dashed border-line">
           <Spinner />

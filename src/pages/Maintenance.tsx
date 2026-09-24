@@ -4,6 +4,7 @@ import { Plus, Trash2, Wrench, ShieldCheck, History as HistoryIcon } from 'lucid
 import TopBar from '@/components/layout/TopBar'
 import Section from '@/components/ui/Section'
 import Badge from '@/components/ui/Badge'
+import DateCell from '@/components/ui/DateCell'
 import Button from '@/components/ui/Button'
 import Modal from '@/components/ui/Modal'
 import Spinner from '@/components/ui/Spinner'
@@ -64,7 +65,7 @@ export default function Maintenance() {
         }
       />
 
-      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-10">
+      <div className="px-4 md:px-8 lg:px-12 pb-8 max-w-5xl mx-auto space-y-10">
         {isLoading ? (
           <div className="flex justify-center py-8"><Spinner /></div>
         ) : (
@@ -84,8 +85,8 @@ export default function Maintenance() {
                     <tbody>
                       {renewals.map((r) => (
                         <tr key={r.id}>
-                          <td>{r.label}</td>
-                          <td className="text-ink-muted whitespace-nowrap">{formatDate(r.validUntil)}</td>
+                          <td className="grow-cell">{r.label}</td>
+                          <td className="text-ink-muted whitespace-nowrap"><DateCell date={r.validUntil} /></td>
                           <td>
                             <Badge variant={STATUS_BADGE[r.status]}>
                               {r.daysRemaining < 0
@@ -119,8 +120,8 @@ export default function Maintenance() {
                       <tr>
                         <th>Service</th>
                         <th className="hidden sm:table-cell">Last done</th>
-                        <th>Progress</th>
-                        <th className="num">Next due</th>
+                        <th className="hidden sm:table-cell">Progress</th>
+                        <th className="num hidden sm:table-cell">Next due</th>
                         <th>Status</th>
                       </tr>
                     </thead>
@@ -130,11 +131,19 @@ export default function Maintenance() {
                         const pct = Math.min(100, Math.round((driven / s.intervalKm) * 100))
                         return (
                           <tr key={s.serviceType}>
-                            <td className="whitespace-nowrap">{s.label}</td>
+                            <td className="grow-cell">
+                              {s.label}
+                              <div className="sm:hidden mt-1.5 flex items-center gap-2">
+                                <div className="flex-1 bg-line-soft rounded-full h-1 overflow-hidden">
+                                  <div className={`h-full rounded-full ${BAR_COLOR[s.status]}`} style={{ width: `${pct}%` }} />
+                                </div>
+                                <span className="text-[11px] text-ink-faint tabular-nums">{formatKm(s.nextDueKm)}</span>
+                              </div>
+                            </td>
                             <td className="text-ink-muted whitespace-nowrap hidden sm:table-cell">
                               {formatKm(s.lastOdometer)} · {formatDate(s.lastDate)}
                             </td>
-                            <td>
+                            <td className="hidden sm:table-cell">
                               <div className="flex items-center gap-2 min-w-[90px]">
                                 <div className="flex-1 bg-line-soft rounded-full h-1.5 overflow-hidden">
                                   <div className={`h-full rounded-full ${BAR_COLOR[s.status]}`} style={{ width: `${pct}%` }} />
@@ -142,7 +151,7 @@ export default function Maintenance() {
                                 <span className="text-xs text-ink-faint tabular-nums w-8 text-right">{pct}%</span>
                               </div>
                             </td>
-                            <td className="num text-ink-muted" title={`every ${formatKm(s.intervalKm)}`}>{formatKm(s.nextDueKm)}</td>
+                            <td className="num text-ink-muted hidden sm:table-cell" title={`every ${formatKm(s.intervalKm)}`}>{formatKm(s.nextDueKm)}</td>
                             <td>
                               <Badge variant={STATUS_BADGE[s.status]}>
                                 {s.kmRemaining <= 0
@@ -167,8 +176,8 @@ export default function Maintenance() {
                       <tr>
                         <th>Date</th>
                         <th>Service</th>
-                        <th className="num">Odometer</th>
-                        <th className="num hidden sm:table-cell">Interval</th>
+                        <th className="num hidden sm:table-cell">Odometer</th>
+                        <th className="num hidden md:table-cell">Interval</th>
                         <th className="num">Cost</th>
                         <th className="w-8" />
                       </tr>
@@ -176,10 +185,13 @@ export default function Maintenance() {
                     <tbody>
                       {records.map((r) => (
                         <tr key={r.id} className="group">
-                          <td className="text-ink-muted whitespace-nowrap">{formatDate(r.date)}</td>
-                          <td><Badge variant="purple">{serviceTypeLabel(r.service_type)}</Badge></td>
-                          <td className="num">{formatKm(r.odometer_km)}</td>
-                          <td className="num text-ink-muted hidden sm:table-cell">{formatKm(r.interval_km)}</td>
+                          <td className="text-ink-muted whitespace-nowrap"><DateCell date={r.date} /></td>
+                          <td className="grow-cell">
+                            <Badge variant="purple" className="max-w-full"><span className="truncate">{serviceTypeLabel(r.service_type)}</span></Badge>
+                            <span className="sm:hidden block text-[11px] text-ink-faint mt-0.5">{formatKm(r.odometer_km)}</span>
+                          </td>
+                          <td className="num hidden sm:table-cell">{formatKm(r.odometer_km)}</td>
+                          <td className="num text-ink-muted hidden md:table-cell">{formatKm(r.interval_km)}</td>
                           <td className="num">{r.cost != null ? formatCurrency(r.cost) : <span className="text-ink-faint">—</span>}</td>
                           <td className="!px-1">
                             <button

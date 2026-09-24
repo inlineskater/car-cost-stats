@@ -119,13 +119,13 @@ export default function Dashboard() {
         }
       />
 
-      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-10">
+      <div className="px-4 md:px-8 lg:px-12 pb-8 max-w-5xl mx-auto space-y-10">
         {isLoading ? (
           <div className="flex justify-center py-8"><Spinner /></div>
         ) : stats && hasAnyData ? (
           <>
             {/* KPIs */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2 md:gap-3">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 md:gap-3">
               <StatCard
                 icon={<Wallet size={13} />}
                 label="This month"
@@ -170,7 +170,7 @@ export default function Dashboard() {
               <ChartBlock><MonthlyBarChart data={monthlyFiltered} /></ChartBlock>
             </Section>
 
-            <div className="grid md:grid-cols-2 gap-10 md:gap-6">
+            <div className="grid xl:grid-cols-2 gap-10 xl:gap-6">
               {categoryTotals.length > 0 && (
                 <Section title="Spend by category" icon={<Table2 size={16} />} aside={<span>{rangeLabel}</span>}>
                   <div className="overflow-x-auto">
@@ -247,7 +247,7 @@ export default function Dashboard() {
               <ChartBlock><CostPerKmChart data={monthlyFiltered} fuelOnly={false} /></ChartBlock>
             </Section>
 
-            <div className="grid md:grid-cols-2 gap-10 md:gap-6">
+            <div className="grid xl:grid-cols-2 gap-10 xl:gap-6">
               {stats.consumptionHistory.length > 1 && (
                 <Section title="Consumption" icon={<Droplets size={16} />} aside={<span>L/100km</span>}>
                   <ChartBlock>

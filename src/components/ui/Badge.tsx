@@ -19,6 +19,20 @@ const variants = {
   yellow: 'bg-[#fdecc8] text-[#402c1b]',
 }
 
+type Variant = NonNullable<BadgeProps['variant']>
+
+// consistent tag color per cost category across all tables
+const CATEGORY_VARIANT: Record<string, Variant> = {
+  service: 'purple',
+  repair: 'purple',
+  insurance: 'info',
+  inspection: 'yellow',
+  tax: 'warning',
+}
+export function categoryVariant(category: string): Variant {
+  return CATEGORY_VARIANT[category] ?? 'neutral'
+}
+
 export default function Badge({ children, variant = 'neutral', className }: BadgeProps) {
   return (
     <span className={cn('inline-flex items-center px-1.5 py-px rounded text-xs whitespace-nowrap', variants[variant], className)}>

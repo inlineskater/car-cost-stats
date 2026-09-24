@@ -1,9 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { History as HistoryIcon, ArrowRight } from 'lucide-react'
-import Badge from '@/components/ui/Badge'
+import Badge, { categoryVariant } from '@/components/ui/Badge'
 import Section from '@/components/ui/Section'
+import DateCell from '@/components/ui/DateCell'
 import type { FuelEntryRow, OtherCostRow } from '@/types'
-import { formatCurrency, formatDate, formatLiters } from '@/lib/utils'
+import { formatCurrency, formatLiters } from '@/lib/utils'
 
 interface RecentEntriesListProps {
   fuelEntries: FuelEntryRow[]
@@ -24,7 +25,7 @@ export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEnt
     ...otherCosts.map((c) => ({
       key: `cost-${c.id}`,
       date: c.date,
-      tag: <Badge variant="neutral" className="capitalize">{c.category}</Badge>,
+      tag: <Badge variant={categoryVariant(c.category)} className="capitalize">{c.category}</Badge>,
       detail: c.description,
       amount: Number(c.cost),
     })),
@@ -47,14 +48,14 @@ export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEnt
       <div className="overflow-x-auto">
         <table className="n-table">
           <thead>
-            <tr><th>Date</th><th>Type</th><th>Details</th><th className="num">Amount</th></tr>
+            <tr><th>Date</th><th className="hidden sm:table-cell">Type</th><th>Details</th><th className="num">Amount</th></tr>
           </thead>
           <tbody>
             {items.map((i) => (
               <tr key={i.key}>
-                <td className="whitespace-nowrap text-ink-muted">{formatDate(i.date)}</td>
-                <td>{i.tag}</td>
-                <td className="max-w-[260px] truncate">{i.detail}</td>
+                <td className="whitespace-nowrap text-ink-muted"><DateCell date={i.date} /></td>
+                <td className="hidden sm:table-cell">{i.tag}</td>
+                <td className="grow-cell"><span className="sm:hidden mr-1.5">{i.tag}</span>{i.detail}</td>
                 <td className="num">{formatCurrency(i.amount)}</td>
               </tr>
             ))}

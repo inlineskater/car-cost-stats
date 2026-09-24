@@ -43,6 +43,11 @@
   .n-table td + td {
     @apply border-l border-line-soft;
   }
+  /* the flexible column: takes the leftover width and truncates instead of
+     pushing the table wider than the screen */
+  .n-table .grow-cell {
+    @apply w-full max-w-0 truncate;
+  }
   .n-table .num {
     @apply text-right tabular-nums whitespace-nowrap;
   }

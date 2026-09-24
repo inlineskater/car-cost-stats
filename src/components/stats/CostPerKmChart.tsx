@@ -41,12 +41,12 @@ export default function CostPerKmChart({ data, fuelOnly }: Props) {
         <YAxis {...axisProps} tickFormatter={(v: number) => v.toFixed(2)} />
         <Tooltip {...tooltipProps} formatter={(v: number) => `${v.toFixed(2)} zł/km`} />
         <Legend {...legendProps} />
-        <Bar dataKey="lpg" name="LPG" stackId="a" fill={CHART_COLORS.lpg} />
-        <Bar dataKey="petrol" name="Petrol" stackId="a" fill={CHART_COLORS.petrol} radius={fuelOnly ? [3, 3, 0, 0] : undefined} />
-        {!fuelOnly && <Bar dataKey="service" name="Service" stackId="a" fill={CHART_COLORS.service} />}
-        {!fuelOnly && <Bar dataKey="insurance" name="Insurance" stackId="a" fill={CHART_COLORS.insurance} />}
-        {!fuelOnly && <Bar dataKey="inspection" name="Inspection" stackId="a" fill={CHART_COLORS.inspection} />}
-        {!fuelOnly && <Bar dataKey="other" name="Other" stackId="a" fill={CHART_COLORS.other} radius={[3, 3, 0, 0]} />}
+        <Bar isAnimationActive={false} dataKey="lpg" name="LPG" stackId="a" fill={CHART_COLORS.lpg} />
+        <Bar isAnimationActive={false} dataKey="petrol" name="Petrol" stackId="a" fill={CHART_COLORS.petrol} radius={fuelOnly ? [3, 3, 0, 0] : undefined} />
+        {!fuelOnly && <Bar isAnimationActive={false} dataKey="service" name="Service" stackId="a" fill={CHART_COLORS.service} />}
+        {!fuelOnly && <Bar isAnimationActive={false} dataKey="insurance" name="Insurance" stackId="a" fill={CHART_COLORS.insurance} />}
+        {!fuelOnly && <Bar isAnimationActive={false} dataKey="inspection" name="Inspection" stackId="a" fill={CHART_COLORS.inspection} />}
+        {!fuelOnly && <Bar isAnimationActive={false} dataKey="other" name="Other" stackId="a" fill={CHART_COLORS.other} radius={[3, 3, 0, 0]} />}
         {!fuelOnly && (
           <Line type="monotone" dataKey="fuelTotal" name="Fuel only" stroke={CHART_COLORS.accent} strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
         )}

@@ -19,6 +19,11 @@ export function formatDate(dateStr: string): string {
   return format(parseISO(dateStr), 'dd MMM yyyy')
 }
 
+// compact date for narrow table cells, e.g. 25.09.26
+export function formatDateShort(dateStr: string): string {
+  return format(parseISO(dateStr), 'dd.MM.yy')
+}
+
 export function formatLiters(liters: number): string {
   return `${liters.toFixed(2)} L`
 }

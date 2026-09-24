@@ -27,7 +27,7 @@ export default function TopBar({ title, action, icon, description }: TopBarProps
           {action && <div className="shrink-0">{action}</div>}
         </div>
       </header>
-      <div className="max-w-5xl mx-auto px-4 md:px-12 pt-6 md:pt-12 pb-4">
+      <div className="max-w-5xl mx-auto px-4 md:px-8 lg:px-12 pt-6 md:pt-12 pb-4">
         <div className="text-5xl md:text-6xl leading-none mb-3 select-none">{emoji}</div>
         <h1 className="text-3xl md:text-4xl font-bold text-ink tracking-tight">{title}</h1>
         {description && <p className="text-ink-muted mt-1.5">{description}</p>}
