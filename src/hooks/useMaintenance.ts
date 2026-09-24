@@ -1,6 +1,6 @@
 import { useMemo } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { differenceInDays, parseISO } from 'date-fns'
+import { differenceInCalendarDays, parseISO } from 'date-fns'
 import { supabase } from '@/lib/supabase'
 import { serviceTypeLabel, renewalCategoryLabel } from '@/lib/maintenance'
 import { useAllFuelEntries } from './useFuelEntries'
@@ -177,7 +177,7 @@ export function useRenewalStatus(): { data: RenewalStatus[]; isLoading: boolean 
     }
 
     const out: RenewalStatus[] = [...latestByCategory.values()].map((r) => {
-      const daysRemaining = differenceInDays(parseISO(r.valid_until), today)
+      const daysRemaining = differenceInCalendarDays(parseISO(r.valid_until), today)
       const status: ReminderStatus =
         daysRemaining < 0 ? 'overdue' : daysRemaining <= DUE_SOON_DAYS ? 'due_soon' : 'ok'
       return {

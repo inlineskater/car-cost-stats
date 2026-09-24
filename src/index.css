@@ -9,6 +9,11 @@
 
   body {
     overscroll-behavior: none;
+    @apply bg-white text-ink;
+  }
+
+  ::selection {
+    background: rgba(35, 131, 226, 0.2);
   }
 
   /* safe area for notched phones */
@@ -17,6 +22,42 @@
   }
   .safe-top {
     padding-top: env(safe-area-inset-top);
+  }
+}
+
+@layer components {
+  /* Notion-style database table */
+  .n-table {
+    @apply w-full text-sm border-collapse;
+  }
+  .n-table th {
+    @apply text-left font-normal text-ink-muted text-xs px-2 py-1.5 border-b border-line whitespace-nowrap;
+  }
+  .n-table td {
+    @apply px-2 py-2 border-b border-line-soft align-middle;
+  }
+  .n-table tbody tr {
+    @apply transition-colors hover:bg-surface-sidebar;
+  }
+  .n-table th + th,
+  .n-table td + td {
+    @apply border-l border-line-soft;
+  }
+  .n-table .num {
+    @apply text-right tabular-nums whitespace-nowrap;
+  }
+
+  /* section heading, like a Notion H3 */
+  .n-heading {
+    @apply text-base font-semibold text-ink flex items-center gap-2;
+  }
+
+  /* small pill-shaped view control (filters, toggles) */
+  .n-chip {
+    @apply inline-flex items-center gap-1 text-sm text-ink-muted px-2 py-1 rounded-md hover:bg-surface-hover transition-colors;
+  }
+  .n-chip-active {
+    @apply text-ink bg-surface-hover;
   }
 }
 

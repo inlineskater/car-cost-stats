@@ -1,4 +1,7 @@
+import { useNavigate } from 'react-router-dom'
+import { History as HistoryIcon, ArrowRight } from 'lucide-react'
 import Badge from '@/components/ui/Badge'
+import Section from '@/components/ui/Section'
 import type { FuelEntryRow, OtherCostRow } from '@/types'
 import { formatCurrency, formatDate, formatLiters } from '@/lib/utils'
 
@@ -8,53 +11,56 @@ interface RecentEntriesListProps {
 }
 
 export default function RecentEntriesList({ fuelEntries, otherCosts }: RecentEntriesListProps) {
-  type Item = { date: string; key: string; el: React.ReactNode }
+  const navigate = useNavigate()
 
-  const items: Item[] = [
-    ...fuelEntries.slice(0, 5).map((e) => ({
-      date: e.date,
+  const items = [
+    ...fuelEntries.map((e) => ({
       key: `fuel-${e.id}`,
-      el: (
-        <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
-          <Badge variant={e.fuel_type === 'lpg' ? 'lpg' : 'petrol'} className="shrink-0">
-            {e.fuel_type.toUpperCase()}
-          </Badge>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-900">{formatLiters(e.liters)}</p>
-            <p className="text-xs text-gray-400">{formatDate(e.date)}</p>
-          </div>
-          <p className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(e.total_cost)}</p>
-        </div>
-      ),
+      date: e.date,
+      tag: <Badge variant={e.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>{e.fuel_type.toUpperCase()}</Badge>,
+      detail: `${formatLiters(Number(e.liters))} · ${Number(e.mileage).toLocaleString('pl-PL')} km`,
+      amount: Number(e.total_cost),
     })),
-    ...otherCosts.slice(0, 3).map((c) => ({
-      date: c.date,
+    ...otherCosts.map((c) => ({
       key: `cost-${c.id}`,
-      el: (
-        <div className="flex items-center gap-3 py-2.5 border-b border-gray-100 last:border-0">
-          <Badge variant="neutral" className="shrink-0 capitalize">{c.category}</Badge>
-          <div className="flex-1 min-w-0">
-            <p className="text-sm text-gray-900 truncate">{c.description}</p>
-            <p className="text-xs text-gray-400">{formatDate(c.date)}</p>
-          </div>
-          <p className="text-sm font-semibold text-gray-900 shrink-0">{formatCurrency(c.cost)}</p>
-        </div>
-      ),
+      date: c.date,
+      tag: <Badge variant="neutral" className="capitalize">{c.category}</Badge>,
+      detail: c.description,
+      amount: Number(c.cost),
     })),
   ]
     .sort((a, b) => b.date.localeCompare(a.date))
-    .slice(0, 6)
+    .slice(0, 8)
 
-  if (items.length === 0) {
-    return <p className="text-center text-gray-400 text-sm py-6">No entries yet</p>
-  }
+  if (items.length === 0) return null
 
   return (
-    <div>
-      <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wide px-1 mb-2">Recent</h2>
-      <div className="bg-white rounded-2xl px-4 shadow-sm">
-        {items.map((i) => <div key={i.key}>{i.el}</div>)}
+    <Section
+      title="Recent entries"
+      icon={<HistoryIcon size={16} />}
+      aside={
+        <button onClick={() => navigate('/history')} className="n-chip">
+          View all <ArrowRight size={13} />
+        </button>
+      }
+    >
+      <div className="overflow-x-auto">
+        <table className="n-table">
+          <thead>
+            <tr><th>Date</th><th>Type</th><th>Details</th><th className="num">Amount</th></tr>
+          </thead>
+          <tbody>
+            {items.map((i) => (
+              <tr key={i.key}>
+                <td className="whitespace-nowrap text-ink-muted">{formatDate(i.date)}</td>
+                <td>{i.tag}</td>
+                <td className="max-w-[260px] truncate">{i.detail}</td>
+                <td className="num">{formatCurrency(i.amount)}</td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
       </div>
-    </div>
+    </Section>
   )
 }

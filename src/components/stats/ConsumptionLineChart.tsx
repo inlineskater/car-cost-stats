@@ -1,8 +1,9 @@
 import {
-  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, ReferenceLine,
 } from 'recharts'
 import { format, parseISO } from 'date-fns'
 import type { ConsumptionPoint } from '@/types'
+import { CHART_COLORS, axisProps, gridProps, legendProps, tooltipProps } from '@/lib/chartTheme'
 
 interface ConsumptionLineChartProps {
   data: ConsumptionPoint[]
@@ -14,7 +15,7 @@ export default function ConsumptionLineChart({ data, avgLpg, avgPetrol }: Consum
   const months = [...new Set(data.map((p) => p.date.substring(0, 7)))].sort()
 
   if (months.length < 2) {
-    return <p className="text-center text-gray-400 text-sm py-6">Need at least 2 months of data</p>
+    return <p className="text-center text-ink-faint text-sm py-6">Need at least 2 months of data</p>
   }
 
   // include the year in the label only when the window spans multiple years
@@ -31,51 +32,33 @@ export default function ConsumptionLineChart({ data, avgLpg, avgPetrol }: Consum
     }
   })
 
-  const hasLpg = avgLpg !== null
-  const hasPetrol = avgPetrol !== null
+  // only draw series that have points in the selected range
+  const hasLpg = chartData.some((d) => d.lpg !== null)
+  const hasPetrol = chartData.some((d) => d.petrol !== null)
 
   return (
-    <>
-      <ResponsiveContainer width="100%" height={160}>
-        <LineChart data={chartData} margin={{ top: 4, right: 4, left: -20, bottom: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-          <XAxis dataKey="date" tick={{ fill: '#94a3b8', fontSize: 10 }} tickLine={false} axisLine={false} />
-          <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} tickLine={false} axisLine={false} unit=" L" />
-          <Tooltip
-            contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 12 }}
-            formatter={(v: number) => [`${v.toFixed(2)} L/100km`]}
-          />
-          <Legend wrapperStyle={{ color: '#6B7280', fontSize: 12 }} />
-          {hasLpg && (
-            <Line
-              type="monotone"
-              dataKey="lpg"
-              name="LPG"
-              stroke="#22c55e"
-              strokeWidth={2}
-              dot={{ r: 4, fill: '#22c55e', strokeWidth: 0 }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            />
-          )}
-          {hasPetrol && (
-            <Line
-              type="monotone"
-              dataKey="petrol"
-              name="Petrol"
-              stroke="#3b82f6"
-              strokeWidth={2}
-              dot={{ r: 4, fill: '#3b82f6', strokeWidth: 0 }}
-              activeDot={{ r: 6 }}
-              connectNulls
-            />
-          )}
-        </LineChart>
-      </ResponsiveContainer>
-      <div className="flex gap-4 mt-1 text-xs">
-        {avgLpg !== null && <p className="text-green-500">Avg LPG: {avgLpg} L/100km</p>}
-        {avgPetrol !== null && <p className="text-blue-500">Avg Petrol: {avgPetrol} L/100km</p>}
-      </div>
-    </>
+    <ResponsiveContainer width="100%" height={220}>
+      <LineChart data={chartData} margin={{ top: 8, right: 4, left: -12, bottom: 0 }}>
+        <CartesianGrid {...gridProps} />
+        <XAxis dataKey="date" {...axisProps} />
+        <YAxis {...axisProps} domain={['auto', 'auto']} />
+        <Tooltip {...tooltipProps} cursor={{ stroke: '#e9e9e7' }} formatter={(v: number) => `${v.toFixed(2)} L/100km`} />
+        <Legend {...legendProps} />
+        {hasLpg && avgLpg !== null && (
+          <ReferenceLine y={avgLpg} stroke={CHART_COLORS.lpg} strokeDasharray="3 3" strokeOpacity={0.5} />
+        )}
+        {hasPetrol && avgPetrol !== null && (
+          <ReferenceLine y={avgPetrol} stroke={CHART_COLORS.petrol} strokeDasharray="3 3" strokeOpacity={0.5} />
+        )}
+        {hasLpg && (
+          <Line type="monotone" dataKey="lpg" name="LPG" stroke={CHART_COLORS.lpg} strokeWidth={2}
+            dot={{ r: 2.5, fill: CHART_COLORS.lpg, strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls />
+        )}
+        {hasPetrol && (
+          <Line type="monotone" dataKey="petrol" name="Petrol" stroke={CHART_COLORS.petrol} strokeWidth={2}
+            dot={{ r: 2.5, fill: CHART_COLORS.petrol, strokeWidth: 0 }} activeDot={{ r: 4 }} connectNulls />
+        )}
+      </LineChart>
+    </ResponsiveContainer>
   )
 }

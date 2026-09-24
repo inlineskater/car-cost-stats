@@ -35,37 +35,37 @@ export default function Auth() {
   }
 
   return (
-    <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center p-4">
+    <div className="min-h-screen bg-surface-sidebar flex items-center justify-center p-4">
       <div className="w-full max-w-sm">
         <div className="flex flex-col items-center mb-8">
-          <div className="bg-blue-500 rounded-2xl p-3 mb-3 shadow-sm">
+          <div className="bg-accent rounded-lg p-3 mb-3">
             <Car size={32} className="text-white" />
           </div>
-          <h1 className="text-2xl font-bold text-gray-900">Car Cost Tracker</h1>
-          <p className="text-gray-400 text-sm mt-1">Track every kilometre and every cent</p>
+          <h1 className="text-2xl font-bold text-ink">Car Cost Tracker</h1>
+          <p className="text-ink-faint text-sm mt-1">Track every kilometre and every cent</p>
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label className="block text-xs text-ink-muted mb-1">Email</label>
             <input
               type="email"
               required
               value={email}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-sm"
+              className="w-full bg-white border border-line rounded-md px-3 py-2 text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30"
               placeholder="you@example.com"
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Password</label>
+            <label className="block text-xs text-ink-muted mb-1">Password</label>
             <input
               type="password"
               required
               minLength={6}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-white border border-gray-200 rounded-xl px-4 py-3 text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-400/40 shadow-sm"
+              className="w-full bg-white border border-line rounded-md px-3 py-2 text-ink placeholder-ink-faint focus:outline-none focus:ring-2 focus:ring-accent/30"
               placeholder="••••••••"
             />
           </div>
@@ -84,17 +84,17 @@ export default function Auth() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-500 hover:bg-blue-400 disabled:opacity-40 text-white font-semibold rounded-xl py-3 transition-colors shadow-sm"
+            className="w-full bg-accent hover:bg-accent-hover disabled:opacity-40 text-white font-semibold rounded-md py-3 transition-colors"
           >
             {loading ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Create account'}
           </button>
         </form>
 
-        <p className="text-center text-gray-400 text-sm mt-6">
+        <p className="text-center text-ink-faint text-sm mt-6">
           {mode === 'signin' ? "Don't have an account? " : 'Already have an account? '}
           <button
             onClick={() => { setMode(mode === 'signin' ? 'signup' : 'signin'); setError(null); setMessage(null) }}
-            className="text-blue-500 hover:text-blue-400 font-medium"
+            className="text-accent hover:text-accent-hover font-medium"
           >
             {mode === 'signin' ? 'Sign up' : 'Sign in'}
           </button>

@@ -164,7 +164,7 @@ export default function AddFuel() {
   return (
     <div>
       <TopBar title="Add Fuel" />
-      <div className="p-4 space-y-5 max-w-lg mx-auto">
+      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-5 [&>*]:max-w-lg">
 
         {phase === 'capture' && (
           <>
@@ -175,15 +175,15 @@ export default function AddFuel() {
                     <img
                       src={img.preview}
                       alt={`Photo ${idx + 1}`}
-                      className="w-full h-32 object-cover rounded-xl border border-gray-200"
+                      className="w-full h-32 object-cover rounded-md border border-line"
                     />
                     <button
                       onClick={() => removeImage(idx)}
-                      className="absolute top-1.5 right-1.5 bg-white/90 rounded-full p-1 text-gray-500 hover:text-gray-800"
+                      className="absolute top-1.5 right-1.5 bg-white/90 rounded-full p-1 text-ink-muted hover:text-ink"
                     >
                       <X size={14} />
                     </button>
-                    <p className="text-[11px] text-gray-500 mt-1 text-center">
+                    <p className="text-[11px] text-ink-muted mt-1 text-center">
                       Photo {idx + 1}
                     </p>
                   </div>
@@ -193,25 +193,25 @@ export default function AddFuel() {
 
             {images.length < MAX_IMPORT_IMAGES && (
               <div className="space-y-3">
-                <p className="text-sm text-gray-500 text-center">
+                <p className="text-sm text-ink-muted text-center">
                   {images.length === 0
                     ? `Add up to ${MAX_IMPORT_IMAGES} photos (receipts + odometer)`
                     : `${images.length} of ${MAX_IMPORT_IMAGES} photos added`}
                 </p>
 
                 {processing ? (
-                  <div className="flex items-center justify-center h-28 bg-gray-100 rounded-xl border border-dashed border-gray-300">
+                  <div className="flex items-center justify-center h-28 bg-surface-sidebar rounded-md border border-dashed border-line">
                     <Spinner />
                   </div>
                 ) : (
                   <button
                     type="button"
                     onClick={() => galleryRef.current?.click()}
-                    className="w-full flex flex-col items-center justify-center gap-2 h-28 bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors active:scale-95"
+                    className="w-full flex flex-col items-center justify-center gap-2 h-28 bg-surface-sidebar border border-dashed border-line rounded-md text-ink-faint hover:border-accent/50 hover:text-accent transition-colors active:scale-95"
                   >
                     <ImageIcon size={28} />
                     <span className="text-sm font-medium">Select photos</span>
-                    <span className="text-[11px] text-gray-400">
+                    <span className="text-[11px] text-ink-faint">
                       choose up to {MAX_IMPORT_IMAGES - images.length} more
                     </span>
                   </button>
@@ -231,21 +231,21 @@ export default function AddFuel() {
             <button
               onClick={handleParseWithAI}
               disabled={images.length === 0}
-              className="w-full flex items-center justify-center gap-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-40 disabled:pointer-events-none text-white font-semibold py-3 rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-accent hover:bg-accent-hover disabled:opacity-40 disabled:pointer-events-none text-white font-medium py-2.5 rounded-md transition-colors"
             >
               <Sparkles size={18} />
               Parse with AI
             </button>
 
             <div className="flex items-center gap-3">
-              <div className="flex-1 h-px bg-gray-200" />
-              <span className="text-xs text-gray-400">or</span>
-              <div className="flex-1 h-px bg-gray-200" />
+              <div className="flex-1 h-px bg-line" />
+              <span className="text-xs text-ink-faint">or</span>
+              <div className="flex-1 h-px bg-line" />
             </div>
 
             <button
               onClick={() => setPhase('confirm')}
-              className="w-full flex items-center justify-center gap-2 bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold py-3 rounded-xl transition-colors"
+              className="w-full flex items-center justify-center gap-2 bg-line hover:bg-line text-ink font-medium py-2.5 rounded-md transition-colors"
             >
               <PenLine size={18} />
               Enter manually
@@ -256,8 +256,8 @@ export default function AddFuel() {
         {phase === 'parsing' && (
           <div className="flex flex-col items-center justify-center py-16 gap-4">
             <Spinner className="w-10 h-10" />
-            <p className="text-gray-700 font-medium">Reading your photos…</p>
-            <p className="text-gray-400 text-sm text-center">Several photos can take a little longer</p>
+            <p className="text-ink font-medium">Reading your photos…</p>
+            <p className="text-ink-faint text-sm text-center">Several photos can take a little longer</p>
           </div>
         )}
 
@@ -274,7 +274,7 @@ export default function AddFuel() {
                   </Badge>
                 )}
                 {parsed.parsing_notes && (
-                  <p className="text-xs text-gray-500 flex-1">{parsed.parsing_notes}</p>
+                  <p className="text-xs text-ink-muted flex-1">{parsed.parsing_notes}</p>
                 )}
               </div>
             )}

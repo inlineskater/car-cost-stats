@@ -40,8 +40,8 @@ export default function App() {
 
   if (session === undefined) {
     return (
-      <div className="min-h-screen bg-[#F2F2F7] flex items-center justify-center">
-        <div className="w-8 h-8 border-2 border-blue-500 border-t-transparent rounded-full animate-spin" />
+      <div className="min-h-screen bg-white flex items-center justify-center">
+        <div className="w-6 h-6 border-2 border-line border-t-ink-muted rounded-full animate-spin" />
       </div>
     )
   }

@@ -11,8 +11,8 @@ export default function Card({ children, className, onClick }: CardProps) {
     <div
       onClick={onClick}
       className={cn(
-        'bg-white rounded-2xl p-4 shadow-sm',
-        onClick && 'cursor-pointer active:scale-[0.98] transition-transform',
+        'bg-white rounded-lg border border-line p-4',
+        onClick && 'cursor-pointer hover:bg-surface-subtle transition-colors',
         className,
       )}
     >

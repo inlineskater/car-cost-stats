@@ -1,7 +1,8 @@
 import {
-  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid, LabelList,
+  BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import type { MonthlyBreakdown } from '@/types'
+import { CHART_COLORS, axisProps, gridProps, legendProps, tooltipProps } from '@/lib/chartTheme'
 
 interface MonthlyBarChartProps {
   data: MonthlyBreakdown[]
@@ -9,29 +10,18 @@ interface MonthlyBarChartProps {
 }
 
 export default function MonthlyBarChart({ data, fuelOnly }: MonthlyBarChartProps) {
-  const chartData = data.map((m) => ({ ...m, _total: fuelOnly ? (m.lpgCost ?? 0) + (m.petrolCost ?? 0) : m.total }))
-
   return (
-    <ResponsiveContainer width="100%" height={240}>
-      <BarChart data={chartData} margin={{ top: 20, right: 4, left: -20, bottom: 0 }}>
-        <CartesianGrid strokeDasharray="3 3" stroke="#E5E7EB" />
-        <XAxis dataKey="label" tick={{ fill: '#9CA3AF', fontSize: 11 }} tickLine={false} axisLine={false} />
-        <YAxis tick={{ fill: '#9CA3AF', fontSize: 11 }} tickLine={false} axisLine={false} />
-        <Tooltip
-          contentStyle={{ background: '#FFFFFF', border: '1px solid #E5E7EB', borderRadius: 12 }}
-          labelStyle={{ color: '#111827', fontWeight: 600 }}
-          itemStyle={{ color: '#6B7280' }}
-          formatter={(v: number) => `${v.toFixed(0)} zł`}
-        />
-        <Legend wrapperStyle={{ color: '#6B7280', fontSize: 11 }} />
-        <Bar dataKey="lpgCost" name="LPG" stackId="a" fill="#22c55e" />
-        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill="#3b82f6" radius={fuelOnly ? [4, 4, 0, 0] : undefined}>
-          {fuelOnly && <LabelList dataKey="_total" position="top" fill="#6B7280" fontSize={10} formatter={(v: number) => v > 0 ? v.toFixed(0) : ''} />}
-        </Bar>
+    <ResponsiveContainer width="100%" height={260}>
+      <BarChart data={data} margin={{ top: 8, right: 4, left: -12, bottom: 0 }} barCategoryGap="25%">
+        <CartesianGrid {...gridProps} />
+        <XAxis dataKey="label" {...axisProps} />
+        <YAxis {...axisProps} tickFormatter={(v: number) => `${v}`} />
+        <Tooltip {...tooltipProps} formatter={(v: number) => `${v.toFixed(0)} zł`} />
+        <Legend {...legendProps} />
+        <Bar dataKey="lpgCost" name="LPG" stackId="a" fill={CHART_COLORS.lpg} />
+        <Bar dataKey="petrolCost" name="Petrol" stackId="a" fill={CHART_COLORS.petrol} radius={fuelOnly ? [3, 3, 0, 0] : undefined} />
         {!fuelOnly && (
-          <Bar dataKey="otherCost" name="Other" stackId="a" fill="#f59e0b" radius={[4, 4, 0, 0]}>
-            <LabelList dataKey="_total" position="top" fill="#6B7280" fontSize={10} formatter={(v: number) => v > 0 ? v.toFixed(0) : ''} />
-          </Bar>
+          <Bar dataKey="otherCost" name="Other" stackId="a" fill={CHART_COLORS.inspection} radius={[3, 3, 0, 0]} />
         )}
       </BarChart>
     </ResponsiveContainer>

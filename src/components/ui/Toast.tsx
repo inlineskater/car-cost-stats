@@ -3,27 +3,27 @@ import { cn } from '@/lib/utils'
 import { useAppStore } from '@/stores/appStore'
 
 const icons = {
-  success: <CheckCircle size={18} className="text-green-400 shrink-0" />,
-  error: <XCircle size={18} className="text-red-400 shrink-0" />,
-  info: <Info size={18} className="text-blue-400 shrink-0" />,
+  success: <CheckCircle size={18} className="text-[#448361] shrink-0" />,
+  error: <XCircle size={18} className="text-[#d44c47] shrink-0" />,
+  info: <Info size={18} className="text-accent shrink-0" />,
 }
 
 export default function ToastContainer() {
   const { toasts, removeToast } = useAppStore()
 
   return (
-    <div className="fixed bottom-20 left-0 right-0 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
+    <div className="fixed bottom-20 md:bottom-6 left-0 right-0 md:left-60 z-50 flex flex-col items-center gap-2 px-4 pointer-events-none">
       {toasts.map((t) => (
         <div
           key={t.id}
           className={cn(
-            'flex items-center gap-3 w-full max-w-sm bg-white border border-gray-200',
-            'rounded-xl px-4 py-3 shadow-lg pointer-events-auto',
+            'flex items-center gap-3 w-full max-w-sm bg-white border border-line',
+            'rounded-md px-3 py-2.5 shadow-pop border-0 pointer-events-auto',
           )}
         >
           {icons[t.type]}
-          <p className="text-sm text-gray-900 flex-1">{t.message}</p>
-          <button onClick={() => removeToast(t.id)} className="text-gray-400 hover:text-gray-600">
+          <p className="text-sm text-ink flex-1">{t.message}</p>
+          <button onClick={() => removeToast(t.id)} className="text-ink-faint hover:text-ink-muted">
             <X size={16} />
           </button>
         </div>

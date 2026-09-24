@@ -46,16 +46,16 @@ export default function AddMaintenance() {
 
   return (
     <div>
-      <TopBar title="Add Service" />
-      <div className="p-4 max-w-lg mx-auto space-y-4">
-        <div className="flex gap-1.5 bg-gray-100 rounded-xl p-1">
+      <TopBar title="Add Service" icon="🛠️" />
+      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto space-y-4 [&>*]:max-w-lg">
+        <div className="flex gap-1.5 bg-surface-sidebar rounded-md p-1">
           {tabs.map((t) => (
             <button
               key={t.value}
               onClick={() => setMode(t.value)}
               className={cn(
                 'flex-1 py-2 rounded-lg text-sm font-medium transition-colors',
-                mode === t.value ? 'bg-white text-gray-900 shadow-sm' : 'text-gray-500 hover:text-gray-700',
+                mode === t.value ? 'bg-white text-ink ring-1 ring-line' : 'text-ink-muted hover:text-ink',
               )}
             >
               {t.label}

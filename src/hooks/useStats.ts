@@ -1,5 +1,5 @@
 import { useMemo } from 'react'
-import { format, parseISO, subMonths, addMonths, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
+import { format, parseISO, subMonths, addMonths, addDays, startOfDay, startOfMonth, differenceInDays, differenceInCalendarMonths } from 'date-fns'
 import { useAllFuelEntries } from './useFuelEntries'
 import { useAllOtherCosts } from './useOtherCosts'
 import { useAppStore } from '@/stores/appStore'
@@ -249,14 +249,14 @@ export function useStats(): { data: StatsData | null; isLoading: boolean } {
       }
     })
 
-    // month-over-month deltas — compare two most-recent months that have any cost
-    const monthsWithData = monthlyBreakdown.filter((m) => m.total > 0)
+    // month-over-month deltas — current calendar month vs the previous one, so
+    // the delta matches the "This month" figure it is shown next to
     let momCostDelta: number | null = null
     let momLpgLitersDelta: number | null = null
     let momConsumptionDelta: number | null = null
-    if (monthsWithData.length >= 2) {
-      const curr = monthsWithData[monthsWithData.length - 1]
-      const prev = monthsWithData[monthsWithData.length - 2]
+    if (monthlyBreakdown.length >= 2) {
+      const curr = monthlyBreakdown[monthlyBreakdown.length - 1]
+      const prev = monthlyBreakdown[monthlyBreakdown.length - 2]
       if (prev.total > 0) momCostDelta = +((curr.total - prev.total) / prev.total * 100).toFixed(1)
 
       const currLpgL = lpgEntries.filter((e) => e.date.startsWith(curr.month)).reduce((s, e) => s + Number(e.liters), 0)
@@ -310,9 +310,10 @@ export function useUpcomingCosts(daysAhead = 30) {
   const { data: costs } = useAllOtherCosts()
   return useMemo(() => {
     if (!costs) return []
-    const today = new Date()
-    const cutoff = new Date()
-    cutoff.setDate(cutoff.getDate() + daysAhead)
+    // compare whole days — due dates are parsed as local midnight, so using
+    // "now" would drop anything due today
+    const today = startOfDay(new Date())
+    const cutoff = addDays(today, daysAhead)
     return costs
       .filter((c) => {
         if (!c.next_due_date) return false

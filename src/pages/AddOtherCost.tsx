@@ -32,7 +32,7 @@ export default function AddOtherCost() {
   return (
     <div>
       <TopBar title="Add Cost" />
-      <div className="p-4 max-w-lg mx-auto">
+      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto [&>*]:max-w-lg">
         <OtherCostForm onSubmit={handleSubmit} submitting={addCost.isPending} />
       </div>
     </div>

@@ -1,5 +1,3 @@
-import Card from '@/components/ui/Card'
-
 interface StatCardProps {
   label: string
   value: string
@@ -11,27 +9,23 @@ interface StatCardProps {
 }
 
 export default function StatCard({ label, value, sub, icon, delta, higherIsBetter = false }: StatCardProps) {
-  const isGood = delta !== null && delta !== undefined
-    ? (higherIsBetter ? delta >= 0 : delta <= 0)
-    : null
+  const isGood = delta != null ? (higherIsBetter ? delta >= 0 : delta <= 0) : null
 
   return (
-    <Card className="flex flex-col gap-1">
-      <div className="flex items-center justify-between">
-        <p className="text-xs text-gray-400 uppercase tracking-wide">{label}</p>
-        {icon && <span className="text-gray-400">{icon}</span>}
-      </div>
-      <p className="text-2xl font-bold text-gray-900 leading-tight">{value}</p>
-      {(sub || (delta != null)) && (
-        <div className="flex items-center justify-between gap-1">
-          {sub && <p className="text-xs text-gray-400">{sub}</p>}
-          {delta != null && delta !== 0 && (
-            <p className={`text-xs font-semibold ml-auto ${isGood ? 'text-green-500' : 'text-red-500'}`}>
-              {delta > 0 ? '↑' : '↓'} {Math.abs(delta)}%
-            </p>
-          )}
-        </div>
+    <div className="rounded-lg border border-line p-3 md:p-4 flex flex-col gap-1 min-w-0">
+      <p className="text-xs text-ink-muted flex items-center gap-1.5 truncate">
+        {icon && <span className="text-ink-faint shrink-0">{icon}</span>}
+        {label}
+      </p>
+      <p className="text-xl md:text-2xl font-semibold text-ink leading-tight tabular-nums truncate">
+        {value}
+        {sub && <span className="text-xs font-normal text-ink-faint ml-1">{sub}</span>}
+      </p>
+      {delta != null && delta !== 0 && (
+        <p className={`text-xs tabular-nums ${isGood ? 'text-[#448361]' : 'text-[#d44c47]'}`}>
+          {delta > 0 ? '↑' : '↓'} {Math.abs(delta)}% <span className="text-ink-faint">vs last month</span>
+        </p>
       )}
-    </Card>
+    </div>
   )
 }

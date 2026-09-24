@@ -7,16 +7,16 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
 }
 
 const variants = {
-  primary: 'bg-blue-500 hover:bg-blue-400 text-white',
-  secondary: 'bg-gray-100 hover:bg-gray-200 text-gray-700',
-  ghost: 'hover:bg-gray-100 text-gray-600',
-  danger: 'bg-red-500 hover:bg-red-400 text-white',
+  primary: 'bg-accent hover:bg-accent-hover text-white',
+  secondary: 'bg-white border border-line hover:bg-surface-hover text-ink',
+  ghost: 'hover:bg-surface-hover text-ink-muted',
+  danger: 'bg-[#eb5757] hover:bg-[#d94f4f] text-white',
 }
 
 const sizes = {
-  sm: 'px-3 py-1.5 text-sm rounded-lg',
-  md: 'px-4 py-2.5 text-sm rounded-xl',
-  lg: 'px-5 py-3 text-base rounded-xl',
+  sm: 'px-2.5 py-1 text-sm rounded-md',
+  md: 'px-3.5 py-2 text-sm rounded-md',
+  lg: 'px-4 py-2.5 text-base rounded-md',
 }
 
 export default function Button({ variant = 'primary', size = 'md', className, children, disabled, ...props }: ButtonProps) {
@@ -25,7 +25,7 @@ export default function Button({ variant = 'primary', size = 'md', className, ch
       {...props}
       disabled={disabled}
       className={cn(
-        'font-semibold transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500',
+        'font-medium transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-accent/40',
         'disabled:opacity-40 disabled:pointer-events-none',
         variants[variant],
         sizes[size],

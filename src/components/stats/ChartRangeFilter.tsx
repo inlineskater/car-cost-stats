@@ -11,7 +11,7 @@ export default function ChartRangeFilter({ value, onChange, years }: ChartRangeF
     <select
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="text-xs px-2 py-1 rounded-lg bg-gray-100 text-gray-600 hover:bg-gray-200 focus:outline-none transition-colors"
+      className="text-sm pl-2 pr-1 py-1 rounded-md bg-transparent text-ink-muted hover:bg-surface-hover focus:outline-none transition-colors cursor-pointer"
     >
       <option value="12m">Last 12 months</option>
       <option value="24m">Last 24 months</option>

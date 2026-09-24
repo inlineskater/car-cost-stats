@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { format, subMonths } from 'date-fns'
+import { format, parseISO } from 'date-fns'
 import { Download, Trash2 } from 'lucide-react'
 import TopBar from '@/components/layout/TopBar'
 import Spinner from '@/components/ui/Spinner'
@@ -22,13 +22,20 @@ const FUEL_TABS: { value: HistoryFilters['fuelType']; label: string }[] = [
   { value: 'other', label: 'Other' },
 ]
 
-function monthOptions() {
-  const opts = []
-  for (let i = 0; i < 12; i++) {
-    const d = subMonths(new Date(), i)
-    opts.push({ value: format(d, 'yyyy-MM'), label: format(d, 'MMM yyyy') })
-  }
-  return opts
+// every month that has at least one entry, newest first
+function monthOptions(dates: string[]) {
+  return [...new Set(dates.map((d) => d.substring(0, 7)))]
+    .sort()
+    .reverse()
+    .map((m) => ({ value: m, label: format(parseISO(`${m}-01`), 'MMM yyyy') }))
+}
+
+const CATEGORY_BADGE: Record<string, 'purple' | 'info' | 'yellow' | 'warning' | 'neutral'> = {
+  service: 'purple',
+  repair: 'purple',
+  insurance: 'info',
+  inspection: 'yellow',
+  tax: 'warning',
 }
 
 type Row =
@@ -55,13 +62,17 @@ export default function History() {
   const deleteFuel = useDeleteFuelEntry()
   const deleteCost = useDeleteOtherCost()
 
-  async function handleDeleteFuel(id: string) {
-    await deleteFuel.mutateAsync(id)
-    addToast('Entry deleted.', 'success')
-  }
-  async function handleDeleteCost(id: string) {
-    await deleteCost.mutateAsync(id)
-    addToast('Cost deleted.', 'success')
+  async function confirmDelete() {
+    if (!pendingDelete) return
+    try {
+      if (pendingDelete.type === 'fuel') await deleteFuel.mutateAsync(pendingDelete.id)
+      else await deleteCost.mutateAsync(pendingDelete.id)
+      addToast('Entry deleted.', 'success')
+    } catch (e) {
+      addToast(e instanceof Error ? e.message : 'Could not delete entry.', 'error')
+    } finally {
+      setPendingDelete(null)
+    }
   }
 
   const filteredOtherCosts = historyFilters.fuelType === 'service'
@@ -73,101 +84,127 @@ export default function History() {
     ...(showOther ? filteredOtherCosts.map((c) => ({ type: 'cost' as const, date: c.date, id: c.id, data: c })) : []),
   ].sort((a, b) => b.date.localeCompare(a.date))
 
-  const months = monthOptions()
+  const months = monthOptions([...allFuelEntries.map((e) => e.date), ...allOtherCosts.map((c) => c.date)])
+  const rowsTotal = rows.reduce((sum, r) => sum + Number(r.type === 'fuel' ? r.data.total_cost : r.data.cost), 0)
 
   return (
     <div>
       <TopBar
         title="History"
+        description="Every fill-up and cost, in one table."
         action={
           <button
             onClick={() => exportCsv(allFuelEntries, allOtherCosts)}
-            className="p-1.5 rounded-lg text-gray-500 hover:text-gray-700 hover:bg-gray-100 transition-colors"
+            className="n-chip"
+            title="Export CSV"
           >
-            <Download size={18} />
+            <Download size={15} /> <span className="hidden sm:inline">Export</span>
           </button>
         }
       />
 
-      <div className="sticky top-14 z-20 bg-[#F2F2F7] border-b border-gray-200 px-4 py-3 space-y-2">
-        <div className="flex gap-1.5 overflow-x-auto no-scrollbar">
-          {FUEL_TABS.map((tab) => (
-            <button
-              key={tab.value}
-              onClick={() => setHistoryFilters({ fuelType: tab.value })}
-              className={cn(
-                'shrink-0 px-3 py-1.5 rounded-lg text-sm font-medium transition-colors',
-                historyFilters.fuelType === tab.value
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'bg-white text-gray-500 hover:text-gray-700 shadow-sm',
-              )}
-            >
-              {tab.label}
-            </button>
-          ))}
+      <div className="px-4 md:px-12 pb-8 max-w-5xl mx-auto">
+        {/* view tabs + filter, Notion database style */}
+        <div className="sticky top-11 z-20 bg-white/95 backdrop-blur border-b border-line flex items-center gap-1 -mx-2 px-2">
+          <div className="flex gap-0.5 overflow-x-auto no-scrollbar flex-1">
+            {FUEL_TABS.map((tab) => (
+              <button
+                key={tab.value}
+                onClick={() => setHistoryFilters({ fuelType: tab.value })}
+                className={cn(
+                  'shrink-0 px-2 py-2 text-sm transition-colors border-b-2 -mb-px',
+                  historyFilters.fuelType === tab.value
+                    ? 'border-ink text-ink font-medium'
+                    : 'border-transparent text-ink-muted hover:text-ink',
+                )}
+              >
+                {tab.label}
+              </button>
+            ))}
+          </div>
+          <select
+            value={historyFilters.month ?? ''}
+            onChange={(e) => setHistoryFilters({ month: e.target.value || null })}
+            className="shrink-0 text-sm bg-transparent text-ink-muted rounded-md px-1.5 py-1 hover:bg-surface-hover focus:outline-none cursor-pointer"
+          >
+            <option value="">All months</option>
+            {months.map((m) => (
+              <option key={m.value} value={m.value}>{m.label}</option>
+            ))}
+          </select>
         </div>
-        <select
-          value={historyFilters.month ?? ''}
-          onChange={(e) => setHistoryFilters({ month: e.target.value || null })}
-          className="bg-white border-0 rounded-lg px-3 py-1.5 text-sm text-gray-700 focus:outline-none shadow-sm"
-        >
-          <option value="">All months</option>
-          {months.map((m) => (
-            <option key={m.value} value={m.value}>{m.label}</option>
-          ))}
-        </select>
-      </div>
 
-      <div className="p-4">
         {(fl || cl) && rows.length === 0 ? (
           <div className="flex justify-center py-12"><Spinner /></div>
         ) : rows.length === 0 ? (
-          <p className="text-center text-gray-400 py-12">No entries for this filter.</p>
+          <p className="text-center text-ink-faint py-12">No entries for this filter.</p>
         ) : (
-          <div className="bg-white rounded-2xl shadow-sm">
-            {rows.map((row) => (
-              <div key={`${row.type}-${row.id}`} className="flex items-center gap-3 px-4 py-3 border-b border-gray-100 last:border-0">
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-2 mb-0.5">
-                    {row.type === 'fuel' ? (
-                      <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
-                        {row.data.fuel_type.toUpperCase()}
-                      </Badge>
-                    ) : (
-                      <Badge variant="neutral" className="capitalize">{row.data.category}</Badge>
-                    )}
-                    <span className="text-xs text-gray-400">{formatDate(row.date)}</span>
-                  </div>
-                  <p className="text-sm text-gray-700 truncate">
-                    {row.type === 'fuel'
-                      ? `${row.data.liters.toFixed(2)} L · ${row.data.mileage.toLocaleString()} km`
-                      : row.data.description}
-                  </p>
-                </div>
-                <p className="text-sm font-semibold text-gray-900 shrink-0">
-                  {formatCurrency(row.type === 'fuel' ? row.data.total_cost : row.data.cost)}
-                </p>
-                <button
-                  onClick={() => setPendingDelete({ type: row.type, id: row.id })}
-                  className="text-gray-300 hover:text-red-500 transition-colors shrink-0"
-                >
-                  <Trash2 size={14} />
-                </button>
-              </div>
-            ))}
+          <div className="overflow-x-auto mt-1">
+            <table className="n-table">
+              <thead>
+                <tr>
+                  <th>Date</th>
+                  <th>Type</th>
+                  <th>Details</th>
+                  <th className="num hidden sm:table-cell">Odometer</th>
+                  <th className="num">Amount</th>
+                  <th className="w-8" />
+                </tr>
+              </thead>
+              <tbody>
+                {rows.map((row) => (
+                  <tr key={`${row.type}-${row.id}`} className="group">
+                    <td className="whitespace-nowrap text-ink-muted">{formatDate(row.date)}</td>
+                    <td>
+                      {row.type === 'fuel' ? (
+                        <Badge variant={row.data.fuel_type === 'lpg' ? 'lpg' : 'petrol'}>
+                          {row.data.fuel_type.toUpperCase()}
+                        </Badge>
+                      ) : (
+                        <Badge variant={CATEGORY_BADGE[row.data.category] ?? 'neutral'} className="capitalize">{row.data.category}</Badge>
+                      )}
+                    </td>
+                    <td className="max-w-[240px] truncate">
+                      {row.type === 'fuel'
+                        ? <>{Number(row.data.liters).toFixed(2)} L <span className="text-ink-faint">· {Number(row.data.price_per_liter).toFixed(2)} zł/L</span></>
+                        : row.data.description}
+                    </td>
+                    <td className="num text-ink-muted hidden sm:table-cell">
+                      {row.type === 'fuel' ? Number(row.data.mileage).toLocaleString('pl-PL') : ''}
+                    </td>
+                    <td className="num">
+                      {formatCurrency(Number(row.type === 'fuel' ? row.data.total_cost : row.data.cost))}
+                    </td>
+                    <td className="!px-1">
+                      <button
+                        onClick={() => setPendingDelete({ type: row.type, id: row.id })}
+                        className="p-1 rounded text-ink-faint hover:text-[#d44c47] hover:bg-surface-hover transition-colors sm:opacity-0 sm:group-hover:opacity-100 focus:opacity-100"
+                        aria-label="Delete entry"
+                      >
+                        <Trash2 size={14} />
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <td colSpan={3} className="px-2 py-2 text-xs text-ink-muted">{rows.length} entries</td>
+                  <td className="hidden sm:table-cell" />
+                  <td className="px-2 py-2 num font-semibold">{formatCurrency(rowsTotal)}</td>
+                  <td />
+                </tr>
+              </tfoot>
+            </table>
           </div>
         )}
       </div>
 
       <Modal open={!!pendingDelete} onClose={() => setPendingDelete(null)} title="Delete entry?">
-        <p className="text-sm text-gray-500 mb-4">This action cannot be undone.</p>
-        <div className="flex gap-3">
+        <p className="text-sm text-ink-muted mb-4">This action cannot be undone.</p>
+        <div className="flex gap-2">
           <Button variant="secondary" className="flex-1" onClick={() => setPendingDelete(null)}>Cancel</Button>
-          <Button variant="danger" className="flex-1" onClick={async () => {
-            if (pendingDelete?.type === 'fuel') await handleDeleteFuel(pendingDelete.id)
-            else if (pendingDelete) await handleDeleteCost(pendingDelete.id)
-            setPendingDelete(null)
-          }}>Delete</Button>
+          <Button variant="danger" className="flex-1" disabled={deleteFuel.isPending || deleteCost.isPending} onClick={confirmDelete}>Delete</Button>
         </div>
       </Modal>
     </div>

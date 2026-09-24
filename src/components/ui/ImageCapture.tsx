@@ -31,23 +31,23 @@ export default function ImageCapture({ label, onImageSelected, preview, onClear 
   if (preview) {
     return (
       <div className="relative">
-        <img src={preview} alt={label} className="w-full h-40 object-cover rounded-xl border border-gray-200" />
+        <img src={preview} alt={label} className="w-full h-40 object-cover rounded-md border border-line" />
         <button
           onClick={onClear}
-          className="absolute top-2 right-2 bg-white/90 rounded-full p-1 text-gray-500 hover:text-gray-800"
+          className="absolute top-2 right-2 bg-white/90 rounded-full p-1 text-ink-muted hover:text-ink"
         >
           <X size={16} />
         </button>
-        <p className="text-xs text-gray-500 mt-1 text-center">{label}</p>
+        <p className="text-xs text-ink-muted mt-1 text-center">{label}</p>
       </div>
     )
   }
 
   return (
     <div className="space-y-2">
-      <p className="text-sm font-medium text-gray-700">{label}</p>
+      <p className="text-sm font-medium text-ink">{label}</p>
       {processing ? (
-        <div className="flex items-center justify-center h-32 bg-gray-100 rounded-xl border border-dashed border-gray-300">
+        <div className="flex items-center justify-center h-32 bg-surface-sidebar rounded-md border border-dashed border-line">
           <Spinner />
         </div>
       ) : (
@@ -55,7 +55,7 @@ export default function ImageCapture({ label, onImageSelected, preview, onClear 
           <button
             type="button"
             onClick={() => cameraRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-2 h-28 bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors active:scale-95"
+            className="flex flex-col items-center justify-center gap-2 h-28 bg-surface-sidebar border border-dashed border-line rounded-md text-ink-faint hover:border-accent/50 hover:text-accent transition-colors active:scale-95"
           >
             <Camera size={22} />
             <span className="text-xs">Camera</span>
@@ -63,7 +63,7 @@ export default function ImageCapture({ label, onImageSelected, preview, onClear 
           <button
             type="button"
             onClick={() => galleryRef.current?.click()}
-            className="flex flex-col items-center justify-center gap-2 h-28 bg-gray-100 border border-dashed border-gray-300 rounded-xl text-gray-400 hover:border-blue-400 hover:text-blue-500 transition-colors active:scale-95"
+            className="flex flex-col items-center justify-center gap-2 h-28 bg-surface-sidebar border border-dashed border-line rounded-md text-ink-faint hover:border-accent/50 hover:text-accent transition-colors active:scale-95"
           >
             <ImageIcon size={22} />
             <span className="text-xs">Gallery</span>
